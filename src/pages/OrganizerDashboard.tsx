@@ -70,10 +70,28 @@ export default function OrganizerDashboard() {
   const openMatching = async (task: Task) => {
     setSelectedTask(task);
     setMatchLoading(true);
-    const profileIds = profiles.map(p => p.id);
-    const results = await aiSemanticMatching(task.id, profileIds);
-    setMatches(results.map(r => ({ ...r, profile: profiles.find(p => p.id === r.volunteerId) })));
-    setMatchLoading(false);
+    try {
+      const results = await aiSemanticMatching(task.id, []);
+      setMatches(results.map(r => ({
+        ...r,
+        profile: r.volunteerName ? {
+          id: r.volunteerId,
+          name: r.volunteerName,
+          avatar: '',
+          skills: r.volunteerSkills || [],
+          bio: r.volunteerBio || '',
+          role: 'volunteer' as const,
+        } : profiles.find(p => p.id === r.volunteerId),
+      })));
+    } catch (err: any) {
+      toast({
+        title: 'Matching Failed',
+        description: err.message || 'Could not find matches.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMatchLoading(false);
+    }
   };
 
   const statusIcon = (s: Task['status']) => {

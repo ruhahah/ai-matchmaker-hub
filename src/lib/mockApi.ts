@@ -21,7 +21,21 @@ export interface Profile {
 
 export interface MatchingResult {
   volunteerId: string;
+  volunteerName?: string;
+  volunteerSkills?: string[];
+  volunteerBio?: string;
   taskId: string;
+  score: number;
+  reason: string;
+}
+
+export interface TaskRecommendation {
+  taskId: string;
+  title: string;
+  description: string;
+  skills: string[];
+  location: string;
+  status: string;
   score: number;
   reason: string;
 }
@@ -39,7 +53,7 @@ export interface VisionResult {
   reason: string;
 }
 
-// ===== MOCK DATA =====
+// ===== MOCK DATA (fallback when DB is empty) =====
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -51,31 +65,59 @@ const MOCK_TASKS: Task[] = [
   { id: 't5', title: 'Senior tech assistance', description: 'Help senior citizens at the community center learn to use smartphones and tablets.', skills: ['technology', 'patience', 'teaching'], location: 'Golden Years Center', status: 'completed', creatorId: 'org1' },
 ];
 
-const MOCK_PROFILES: Profile[] = [
-  { id: 'v1', name: 'Alex Rivera', avatar: '', skills: ['painting', 'carpentry', 'outdoors'], bio: 'Experienced handyman who loves outdoor projects. 5 years of volunteer painting experience.', role: 'volunteer' },
-  { id: 'v2', name: 'Jordan Lee', avatar: '', skills: ['animals', 'caregiving', 'first-aid'], bio: 'Animal lover and certified first-aid responder. Weekend availability.', role: 'volunteer' },
-  { id: 'v3', name: 'Sam Patel', avatar: '', skills: ['teaching', 'math', 'science', 'technology'], bio: 'Engineering student passionate about education and STEM outreach.', role: 'volunteer' },
-  { id: 'v4', name: 'Casey Morgan', avatar: '', skills: ['gardening', 'outdoors', 'photography'], bio: 'Green thumb with a camera. Loves documenting community transformations.', role: 'volunteer' },
-];
-
-const AI_REASONS = [
-  "Skills 'painting' and 'teamwork' closely match task requirements",
-  "Bio mentions extensive experience with animals and caregiving",
-  "Teaching background and subject expertise align perfectly",
-  "Outdoor project experience and availability match well",
-  "Technical skills and patience trait are ideal for this task",
-];
-
-// ===== MOCK FUNCTIONS =====
+// ===== API FUNCTIONS =====
 
 export async function getTasks(_role: string): Promise<Task[]> {
-  await delay(600);
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id, title, description, skills, location, status, creator_id')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return data.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        skills: t.skills || [],
+        location: t.location || '',
+        status: t.status as Task['status'],
+        creatorId: t.creator_id,
+      }));
+    }
+  } catch (e) {
+    console.warn('Falling back to mock tasks:', e);
+  }
+  await delay(400);
   return [...MOCK_TASKS];
 }
 
 export async function getProfiles(_role: string): Promise<Profile[]> {
-  await delay(400);
-  return [...MOCK_PROFILES];
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, name, avatar, skills, bio, role')
+      .eq('role', _role === 'organizer' ? 'volunteer' : _role);
+
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return data.map(p => ({
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar || '',
+        skills: p.skills || [],
+        bio: p.bio || '',
+        role: p.role as Profile['role'],
+      }));
+    }
+  } catch (e) {
+    console.warn('Falling back to mock profiles:', e);
+  }
+  await delay(300);
+  return [];
 }
 
 export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
@@ -102,14 +144,55 @@ export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
   };
 }
 
-export async function aiSemanticMatching(taskId: string, profileIds: string[]): Promise<MatchingResult[]> {
-  await delay(1200);
-  return profileIds.map((vid, i) => ({
-    volunteerId: vid,
-    taskId,
-    score: parseFloat((0.8 + Math.random() * 0.19).toFixed(2)),
-    reason: AI_REASONS[i % AI_REASONS.length],
-  })).sort((a, b) => b.score - a.score);
+export async function aiSemanticMatching(taskId: string, _profileIds: string[]): Promise<MatchingResult[]> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('semantic-match', {
+      body: { taskId, mode: 'volunteers-for-task' },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    return (data.matches || []).map((m: any) => ({
+      volunteerId: m.volunteerId,
+      volunteerName: m.volunteerName,
+      volunteerSkills: m.volunteerSkills,
+      volunteerBio: m.volunteerBio,
+      taskId: m.taskId,
+      score: m.score,
+      reason: m.reason,
+    }));
+  } catch (e) {
+    console.error('Semantic matching error:', e);
+    throw e;
+  }
+}
+
+export async function aiTaskRecommendations(volunteerId: string): Promise<TaskRecommendation[]> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('semantic-match', {
+      body: { taskId: volunteerId, mode: 'tasks-for-volunteer' },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    return (data.matches || []).map((m: any) => ({
+      taskId: m.taskId,
+      title: m.title,
+      description: m.description,
+      skills: m.skills || [],
+      location: m.location || '',
+      status: m.status,
+      score: m.score,
+      reason: m.reason,
+    }));
+  } catch (e) {
+    console.error('Task recommendations error:', e);
+    throw e;
+  }
 }
 
 export async function aiVisionVerify(_taskId: string, _photoBase64: string): Promise<VisionResult> {
