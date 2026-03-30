@@ -156,7 +156,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_tasks_by_embedding: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          creator_id: string
+          description: string
+          id: string
+          location: string
+          similarity: number
+          skills: string[]
+          status: string
+          title: string
+        }[]
+      }
+      match_volunteers_to_task: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          task_uuid: string
+        }
+        Returns: {
+          bio: string
+          name: string
+          similarity: number
+          skills: string[]
+          volunteer_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
