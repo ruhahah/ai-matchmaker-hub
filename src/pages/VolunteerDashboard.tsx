@@ -4,9 +4,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send } from 'lucide-react';
-import { getTasks, getProfiles, aiSemanticMatching, aiVisionVerify, type Task, type MatchingResult, type VisionResult } from '@/lib/mockApi';
+import { aiTaskRecommendations, aiVisionVerify, getProfiles, type TaskRecommendation, type VisionResult } from '@/lib/mockApi';
+import { useToast } from '@/hooks/use-toast';
 
-interface RecommendedTask extends Task {
+interface RecommendedTask {
+  id: string;
+  title: string;
+  description: string;
+  skills: string[];
+  location: string;
+  status: string;
   score: number;
   reason: string;
 }
@@ -18,21 +25,44 @@ export default function VolunteerDashboard() {
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     (async () => {
-      const [allTasks, profiles] = await Promise.all([getTasks('volunteer'), getProfiles('volunteer')]);
-      const myProfile = profiles[0]; // mock: first profile is "me"
-      const openTasks = allTasks.filter(t => t.status === 'open' || t.status === 'verifying');
-      const matching = await aiSemanticMatching('all', [myProfile.id]);
+      try {
+        const profiles = await getProfiles('volunteer');
+        const volunteerId = profiles[0]?.id;
 
-      const recommended: RecommendedTask[] = openTasks.map(t => {
-        const match = matching.find(m => m.taskId === 'all') || { score: 0.85 + Math.random() * 0.14, reason: `Recommended because your bio mentions experience relevant to ${t.skills[0]}` };
-        return { ...t, score: parseFloat(match.score.toFixed(2)), reason: match.reason };
-      }).filter(t => t.score > 0.8).sort((a, b) => b.score - a.score);
+        if (!volunteerId) {
+          setLoading(false);
+          return;
+        }
 
-      setTasks(recommended);
-      setLoading(false);
+        const recommendations = await aiTaskRecommendations(volunteerId);
+        const recommended: RecommendedTask[] = recommendations
+          .filter(r => r.score > 0.4)
+          .map(r => ({
+            id: r.taskId,
+            title: r.title,
+            description: r.description,
+            skills: r.skills,
+            location: r.location,
+            status: r.status,
+            score: r.score,
+            reason: r.reason,
+          }));
+
+        setTasks(recommended);
+      } catch (err: any) {
+        console.error('Failed to load recommendations:', err);
+        toast({
+          title: 'Failed to load recommendations',
+          description: err.message || 'Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
