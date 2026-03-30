@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
+import { useToast } from '@/hooks/use-toast';
 
 export default function OrganizerDashboard() {
   const [rawText, setRawText] = useState('');
@@ -28,13 +29,24 @@ export default function OrganizerDashboard() {
     });
   }, []);
 
+  const { toast } = useToast();
+
   const handleParse = async () => {
     if (!rawText.trim()) return;
     setParsing(true);
     setPublished(false);
-    const result = await aiIntakeText(rawText);
-    setDraft(result);
-    setParsing(false);
+    try {
+      const result = await aiIntakeText(rawText);
+      setDraft(result);
+    } catch (err: any) {
+      toast({
+        title: 'AI Processing Failed',
+        description: err.message || 'Could not parse the text. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handlePublish = () => {

@@ -79,23 +79,26 @@ export async function getProfiles(_role: string): Promise<Profile[]> {
 }
 
 export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
-  await delay(1800);
-  const words = rawText.toLowerCase();
-  const skills: string[] = [];
-  if (words.includes('paint')) skills.push('painting');
-  if (words.includes('garden') || words.includes('plant')) skills.push('gardening');
-  if (words.includes('teach') || words.includes('tutor')) skills.push('teaching');
-  if (words.includes('animal') || words.includes('dog') || words.includes('cat')) skills.push('animals');
-  if (words.includes('tech') || words.includes('computer')) skills.push('technology');
-  if (skills.length === 0) skills.push('general help');
+  const { supabase } = await import('@/integrations/supabase/client');
 
-  const firstSentence = rawText.split(/[.!?]/)[0]?.trim() || rawText.slice(0, 60);
+  const { data, error } = await supabase.functions.invoke('ai-intake', {
+    body: { rawText },
+  });
+
+  if (error) {
+    console.error('AI intake error:', error);
+    throw new Error(error.message || 'AI processing failed');
+  }
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
 
   return {
-    title: firstSentence.length > 60 ? firstSentence.slice(0, 57) + '...' : firstSentence,
-    description: rawText,
-    skills,
-    urgency: words.includes('urgent') || words.includes('asap') ? 'high' : words.includes('soon') ? 'medium' : 'low',
+    title: data.title,
+    description: data.description,
+    skills: data.skills,
+    urgency: data.urgency,
   };
 }
 
