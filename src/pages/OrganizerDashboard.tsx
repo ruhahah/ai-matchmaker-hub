@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
+import { useToast } from '@/hooks/use-toast';
 
 export default function OrganizerDashboard() {
   const [rawText, setRawText] = useState('');
