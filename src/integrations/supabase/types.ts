@@ -14,7 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          created_at: string
+          id: string
+          proof_url: string | null
+          status: string
+          task_id: string
+          updated_at: string
+          verification_result: Json | null
+          volunteer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          status?: string
+          task_id: string
+          updated_at?: string
+          verification_result?: Json | null
+          volunteer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proof_url?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+          verification_result?: Json | null
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          bio: string | null
+          created_at: string
+          embedding: string | null
+          id: string
+          name: string
+          role: string
+          skills: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          name: string
+          role: string
+          skills?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          bio?: string | null
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          name?: string
+          role?: string
+          skills?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string
+          embedding: string | null
+          id: string
+          location: string | null
+          skills: string[]
+          status: string
+          title: string
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string
+          embedding?: string | null
+          id?: string
+          location?: string | null
+          skills?: string[]
+          status?: string
+          title: string
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string
+          embedding?: string | null
+          id?: string
+          location?: string | null
+          skills?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
