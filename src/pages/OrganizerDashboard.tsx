@@ -29,13 +29,24 @@ export default function OrganizerDashboard() {
     });
   }, []);
 
+  const { toast } = useToast();
+
   const handleParse = async () => {
     if (!rawText.trim()) return;
     setParsing(true);
     setPublished(false);
-    const result = await aiIntakeText(rawText);
-    setDraft(result);
-    setParsing(false);
+    try {
+      const result = await aiIntakeText(rawText);
+      setDraft(result);
+    } catch (err: any) {
+      toast({
+        title: 'AI Processing Failed',
+        description: err.message || 'Could not parse the text. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handlePublish = () => {
