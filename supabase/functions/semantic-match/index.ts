@@ -48,7 +48,7 @@ serve(async (req) => {
   }
 });
 
-async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: string) {
+async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: string): Promise<Response> {
   // Fetch task
   const { data: task, error: taskError } = await supabase
     .from("tasks")
@@ -179,7 +179,7 @@ async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: str
   );
 }
 
-async function matchTasksForVolunteer(supabase: any, apiKey: string, volunteerId: string) {
+async function matchTasksForVolunteer(supabase: any, apiKey: string, volunteerId: string): Promise<Response> {
   // Fetch volunteer profile
   const { data: volunteer, error: volError } = await supabase
     .from("profiles")

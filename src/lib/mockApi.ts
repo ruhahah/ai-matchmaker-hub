@@ -27,6 +27,7 @@ export interface MatchingResult {
   taskId: string;
   score: number;
   reason: string;
+  ai_reason?: string;
 }
 
 export interface TaskRecommendation {
@@ -51,6 +52,19 @@ export interface VisionResult {
   status: 'approved' | 'rejected';
   confidence: number;
   reason: string;
+}
+
+export interface VolunteerInvitation {
+  id: string;
+  task_id: string;
+  task_title: string;
+  task_description: string;
+  task_skills: string[];
+  task_location: string;
+  task_start_time: string;
+  invitation_text: string;
+  similarity_score: number;
+  expires_at: string;
 }
 
 // ===== MOCK DATA (fallback when DB is empty) =====
@@ -120,28 +134,91 @@ export async function getProfiles(_role: string): Promise<Profile[]> {
   return [];
 }
 
+export async function createTaskWithAI(taskData: {
+  title: string;
+  description: string;
+  skills: string[];
+  location?: string;
+  urgency: 'low' | 'medium' | 'high';
+  creatorId: string;
+}): Promise<{ task: Task; matches: MatchingResult[] }> {
+  try {
+    const { createTaskWithMatching } = await import('./ai-service');
+    const result = await createTaskWithMatching(taskData);
+    
+    // Convert to our mock types
+    const task: Task = {
+      id: result.task.id,
+      title: result.task.title,
+      description: result.task.description,
+      skills: result.task.skills,
+      location: result.task.location || '',
+      status: result.task.status,
+      creatorId: result.task.creator_id,
+    };
+    
+    const matches = result.matches.map(m => ({
+      volunteerId: m.volunteer_id,
+      volunteerName: m.volunteer_name,
+      volunteerSkills: m.volunteer_skills,
+      volunteerBio: m.volunteer_bio,
+      taskId: result.task.id,
+      score: m.similarity_score,
+      reason: 'AI-powered semantic match',
+      ai_reason: m.ai_reason,
+    }));
+    
+    return { task, matches };
+  } catch (error) {
+    console.error('Create task with AI error:', error);
+    throw error;
+  }
+}
+
+export async function updateProfileWithAI(profileId: string, profileData: {
+  name?: string;
+  bio?: string;
+  skills?: string[];
+}): Promise<Profile> {
+  try {
+    const { updateProfileWithEmbedding } = await import('./ai-service');
+    const result = await updateProfileWithEmbedding(profileId, profileData);
+    
+    return {
+      id: result.id,
+      name: result.name,
+      avatar: '', // We'll need to add this field
+      skills: result.skills,
+      bio: result.bio || '',
+      role: result.user_role,
+    };
+  } catch (error) {
+    console.error('Update profile with AI error:', error);
+    throw error;
+  }
+}
+
 export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
-  const { supabase } = await import('@/integrations/supabase/client');
-
-  const { data, error } = await supabase.functions.invoke('ai-intake', {
-    body: { rawText },
-  });
-
-  if (error) {
+  try {
+    const { aiIntakeText: aiIntake } = await import('./ai-service');
+    const result = await aiIntake(rawText);
+    
+    return {
+      title: result.title,
+      description: result.description,
+      skills: result.skills,
+      urgency: result.urgency,
+    };
+  } catch (error) {
     console.error('AI intake error:', error);
-    throw new Error(error.message || 'AI processing failed');
+    // Fallback to basic parsing if AI fails
+    return {
+      title: rawText.slice(0, 50) + '...',
+      description: rawText,
+      skills: ['general'],
+      urgency: 'medium'
+    };
   }
-
-  if (data?.error) {
-    throw new Error(data.error);
-  }
-
-  return {
-    title: data.title,
-    description: data.description,
-    skills: data.skills,
-    urgency: data.urgency,
-  };
 }
 
 export async function aiSemanticMatching(taskId: string, _profileIds: string[]): Promise<MatchingResult[]> {
@@ -195,29 +272,103 @@ export async function aiTaskRecommendations(volunteerId: string): Promise<TaskRe
   }
 }
 
+export async function getPendingInvitations(volunteerId: string): Promise<VolunteerInvitation[]> {
+  try {
+    const { getPendingInvitations: getInvitations } = await import('./supabase');
+    const invitations = await getInvitations(volunteerId);
+    return invitations;
+  } catch (e) {
+    console.warn('Falling back to mock invitations:', e);
+    // Mock urgent invitation for testing
+    const mockInvitation: VolunteerInvitation = {
+      id: 'inv1',
+      task_id: 't1',
+      task_title: 'Срочная помощь в парке',
+      task_description: 'Нужно помочь с уборкой территории перед мероприятием завтра',
+      task_skills: ['уборка', 'работа на свежем воздухе'],
+      task_location: 'Центральный парк',
+      task_start_time: new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString(),
+      invitation_text: 'Привет! Мы видим, у тебя есть опыт в работе на свежем воздухе, а завтра в парке как раз нужна срочная помощь. Поможешь нам?',
+      similarity_score: 0.85,
+      expires_at: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+    };
+    await delay(300);
+    return [mockInvitation];
+  }
+}
+
+export async function respondToInvitation(
+  invitationId: string,
+  status: 'accepted' | 'rejected'
+): Promise<boolean> {
+  try {
+    const { respondToInvitation: respond } = await import('./supabase');
+    return await respond(invitationId, status);
+  } catch (e) {
+    console.warn('Falling back to mock invitation response:', e);
+    await delay(200);
+    return true;
+  }
+}
+
+export async function acceptInvitationAndApply(
+  invitationId: string,
+  taskId: string,
+  volunteerId: string
+): Promise<any> {
+  try {
+    const { acceptInvitationAndApply: acceptApply } = await import('./supabase');
+    return await acceptApply(invitationId, taskId, volunteerId);
+  } catch (e) {
+    console.warn('Falling back to mock accept and apply:', e);
+    await delay(400);
+    return { id: 'app1', task_id: taskId, volunteer_id: volunteerId, status: 'pending' };
+  }
+}
+
 export async function aiVisionVerify(taskId: string, photoBase64: string): Promise<VisionResult> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.functions.invoke('vision-verify', {
-      body: { taskId, photoBase64 },
-    });
-
-    if (error) {
-      console.error('Vision verification error:', error);
-      throw new Error(error.message || 'Vision verification failed');
+    // Get task details for context
+    const task = await getTaskById(taskId);
+    
+    const { aiVisionVerify: visionVerify } = await import('./ai-service');
+    const result = await visionVerify(photoBase64, task.description, task.title);
+    
+    // If approved, update task status to completed
+    if (result.status === 'approved') {
+      const { updateTask } = await import('./supabase');
+      await updateTask(taskId, { status: 'completed' });
     }
-
-    if (data?.error) {
-      throw new Error(data.error);
-    }
-
+    
     return {
-      status: data.status,
-      confidence: data.confidence,
-      reason: data.reason,
+      status: result.status,
+      confidence: result.confidence,
+      reason: result.reason,
     };
+  } catch (error) {
+    console.error('Vision verification error:', error);
+    throw error;
+  }
+}
+
+// Helper function to get task by ID
+async function getTaskById(taskId: string): Promise<{ id: string; title: string; description: string }> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('id, title, description')
+      .eq('id', taskId)
+      .single();
+    
+    if (error) throw error;
+    return data;
   } catch (e) {
-    console.error('Vision verification error:', e);
-    throw e;
+    // Fallback to mock task
+    return {
+      id: taskId,
+      title: 'Test Task',
+      description: 'Test description'
+    };
   }
 }

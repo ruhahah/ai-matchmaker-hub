@@ -4,8 +4,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload } from 'lucide-react';
-import { aiTaskRecommendations, aiVisionVerify, getProfiles, type TaskRecommendation, type VisionResult } from '@/lib/mockApi';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle } from 'lucide-react';
+import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 
 interface RecommendedTask {
@@ -21,12 +21,15 @@ interface RecommendedTask {
 
 export default function VolunteerDashboard() {
   const [tasks, setTasks] = useState<RecommendedTask[]>([]);
+  const [invitations, setInvitations] = useState<VolunteerInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<RecommendedTask | null>(null);
+  const [selectedInvitation, setSelectedInvitation] = useState<VolunteerInvitation | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [respondingToInvitation, setRespondingToInvitation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -41,29 +44,30 @@ export default function VolunteerDashboard() {
           return;
         }
 
-        const recommendations = await aiTaskRecommendations(volunteerId);
+        // Load both recommendations and urgent invitations
+        const [recommendations, pendingInvitations] = await Promise.all([
+          aiTaskRecommendations(volunteerId),
+          getPendingInvitations(volunteerId)
+        ]);
+
         const recommended: RecommendedTask[] = recommendations
           .filter(r => r.score > 0.4)
           .map(r => ({
             id: r.taskId,
             title: r.title,
             description: r.description,
-            skills: r.skills,
-            location: r.location,
+            skills: r.skills || [],
+            location: r.location || '',
             status: r.status,
             score: r.score,
             reason: r.reason,
           }));
 
         setTasks(recommended);
-      } catch (err: any) {
-        console.error('Failed to load recommendations:', err);
-        toast({
-          title: 'Failed to load recommendations',
-          description: err.message || 'Please try again later.',
-          variant: 'destructive',
-        });
-      } finally {
+        setInvitations(pendingInvitations);
+        setLoading(false);
+      } catch (err) {
+        console.error('Dashboard loading error:', err);
         setLoading(false);
       }
     })();
@@ -110,6 +114,33 @@ export default function VolunteerDashboard() {
     try {
       const result = await aiVisionVerify(taskId, selectedPhoto);
       setVisionResult(result);
+      
+      // If approved, update task status in UI
+      if (result.status === 'approved') {
+        setTasks(prev => prev.map(task => 
+          task.id === taskId 
+            ? { ...task, status: 'completed' }
+            : task
+        ));
+        
+        toast({
+          title: 'Task Completed! 🎉',
+          description: 'Your work has been verified and approved by AI.',
+        });
+        
+        // Close modal after successful verification
+        setTimeout(() => {
+          setSelectedTask(null);
+          setSelectedPhoto(null);
+          setVisionResult(null);
+        }, 2000);
+      } else {
+        toast({
+          title: 'Verification Failed',
+          description: result.reason,
+          variant: 'destructive',
+        });
+      }
     } catch (err: any) {
       toast({
         title: 'Verification failed',
@@ -118,6 +149,71 @@ export default function VolunteerDashboard() {
       });
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleAcceptInvitation = async (invitation: VolunteerInvitation) => {
+    setRespondingToInvitation(true);
+    try {
+      const profiles = await getProfiles('volunteer');
+      const volunteerId = profiles[0]?.id;
+      
+      if (!volunteerId) {
+        toast({
+          title: 'Error',
+          description: 'Volunteer profile not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await acceptInvitationAndApply(invitation.id, invitation.task_id, volunteerId);
+      
+      // Remove invitation from list
+      setInvitations(prev => prev.filter(inv => inv.id !== invitation.id));
+      
+      // Add to applied tasks
+      setApplied(prev => new Set(prev).add(invitation.task_id));
+      
+      toast({
+        title: 'Invitation Accepted! 🎉',
+        description: 'You have been applied to the task successfully.',
+      });
+      
+      setSelectedInvitation(null);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to accept invitation',
+        description: err.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRespondingToInvitation(false);
+    }
+  };
+
+  const handleRejectInvitation = async (invitationId: string) => {
+    setRespondingToInvitation(true);
+    try {
+      await respondToInvitation(invitationId, 'rejected');
+      
+      // Remove invitation from list
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      
+      toast({
+        title: 'Invitation Declined',
+        description: 'You have declined this invitation.',
+      });
+      
+      setSelectedInvitation(null);
+    } catch (err: any) {
+      toast({
+        title: 'Failed to decline invitation',
+        description: err.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRespondingToInvitation(false);
     }
   };
 
@@ -147,15 +243,25 @@ export default function VolunteerDashboard() {
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-display font-semibold">{task.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display font-semibold">{task.title}</h3>
+                      {task.status === 'completed' && (
+                        <Badge className="bg-success/10 text-success border-success/20">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
                       <MapPin className="h-3 w-3" />
                       {task.location}
                     </div>
                   </div>
-                  <Badge className="gradient-primary text-primary-foreground border-0 shrink-0">
-                    {Math.round(task.score * 100)}%
-                  </Badge>
+                  {task.status !== 'completed' && (
+                    <Badge className="gradient-primary text-primary-foreground border-0 shrink-0">
+                      {Math.round(task.score * 100)}%
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Trust UI — AI Explanation */}
@@ -170,6 +276,101 @@ export default function VolunteerDashboard() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Urgent Invitations Section */}
+      {invitations.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-orange-500" />
+            <h2 className="font-display text-xl font-semibold">Срочные запросы для тебя</h2>
+            <Badge variant="destructive" className="text-xs">
+              {invitations.length}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            AI подобрал эти срочные задачи специально для тебя
+          </p>
+          
+          <div className="grid gap-3">
+            {invitations.map((invitation, i) => (
+              <Card
+                key={invitation.id}
+                className="border-orange-200 bg-orange-50/50 cursor-pointer transition-all hover:shadow-md hover:border-orange-300 animate-slide-up"
+                style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}
+                onClick={() => setSelectedInvitation(invitation)}
+              >
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display font-semibold text-sm">{invitation.task_title}</h3>
+                        <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Срочно
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                        <MapPin className="h-3 w-3" />
+                        {invitation.task_location}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-orange-600 mt-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(invitation.task_start_time).toLocaleString('ru-RU', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                    <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+                      {Math.round(invitation.similarity_score * 100)}%
+                    </Badge>
+                  </div>
+
+                  {/* Personalized AI Invitation */}
+                  <div className="flex items-start gap-2 rounded-lg bg-gradient-to-r from-orange-100 to-amber-100 border border-orange-200 p-3">
+                    <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-orange-600" />
+                    <p className="text-xs text-orange-800 leading-relaxed">{invitation.invitation_text}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAcceptInvitation(invitation);
+                      }}
+                      disabled={respondingToInvitation}
+                    >
+                      {respondingToInvitation ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3" />
+                      )}
+                      Принять
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRejectInvitation(invitation.id);
+                      }}
+                      disabled={respondingToInvitation}
+                    >
+                      <XCircle className="h-3 w-3" />
+                      Отклонить
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -192,12 +393,12 @@ export default function VolunteerDashboard() {
             <p className="text-xs text-accent-foreground">{selectedTask?.reason}</p>
           </div>
 
-          {selectedTask && !applied.has(selectedTask.id) ? (
+          {selectedTask && !applied.has(selectedTask.id) && selectedTask.status !== 'completed' ? (
             <Button onClick={() => handleApply(selectedTask.id)} className="w-full gap-2">
               <Send className="h-4 w-4" />
               Apply to this Task
             </Button>
-          ) : selectedTask && applied.has(selectedTask.id) ? (
+          ) : selectedTask && applied.has(selectedTask.id) && selectedTask.status !== 'completed' ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-success font-medium">
                 <CheckCircle2 className="h-4 w-4" />
@@ -261,6 +462,12 @@ export default function VolunteerDashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          ) : selectedTask?.status === 'completed' ? (
+            <div className="text-center py-4">
+              <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-2" />
+              <h4 className="font-semibold text-success">Task Completed!</h4>
+              <p className="text-sm text-muted-foreground">Great work! Your completion has been verified by AI.</p>
             </div>
           ) : null}
         </DialogContent>

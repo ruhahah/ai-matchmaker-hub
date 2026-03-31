@@ -60,6 +60,65 @@ export interface TaskMatch {
   similarity_score: number
 }
 
+export interface VolunteerInvitation {
+  id: string;
+  task_id: string;
+  task_title: string;
+  task_description: string;
+  task_skills: string[];
+  task_location: string;
+  task_start_time: string;
+  invitation_text: string;
+  similarity_score: number;
+  expires_at: string;
+}
+
+// RPC function calls for urgent invitations
+export const getPendingInvitations = async (
+  volunteerId: string
+): Promise<VolunteerInvitation[]> => {
+  const { data, error } = await supabase.rpc('get_pending_invitations', {
+    volunteer_uuid: volunteerId
+  });
+
+  if (error) throw error;
+  return data || [];
+};
+
+export const respondToInvitation = async (
+  invitationId: string,
+  status: 'accepted' | 'rejected'
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('volunteer_invitations')
+    .update({ 
+      status, 
+      responded_at: new Date().toISOString() 
+    })
+    .eq('id', invitationId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return !!data;
+};
+
+export const acceptInvitationAndApply = async (
+  invitationId: string,
+  taskId: string,
+  volunteerId: string
+): Promise<Application> => {
+  // First respond to invitation
+  await respondToInvitation(invitationId, 'accepted');
+  
+  // Then create application
+  return await createApplication({
+    task_id: taskId,
+    volunteer_id: volunteerId,
+    status: 'pending'
+  });
+};
+
 // RPC function calls
 export const matchVolunteers = async (
   taskEmbedding: number[],

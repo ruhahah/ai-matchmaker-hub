@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
-import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
+import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, createTaskWithAI, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 
 export default function OrganizerDashboard() {
@@ -49,22 +49,52 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handlePublish = () => {
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = async () => {
     if (!draft) return;
-    const newTask: Task = {
-      id: `t${Date.now()}`,
-      title: draft.title,
-      description: draft.description,
-      skills: draft.skills,
-      location: 'To be determined',
-      status: 'open',
-      creatorId: 'org1',
-    };
-    setTasks(prev => [newTask, ...prev]);
-    setDraft(null);
-    setRawText('');
-    setPublished(true);
-    setTimeout(() => setPublished(false), 3000);
+    setPublishing(true);
+    try {
+      const result = await createTaskWithAI({
+        title: draft.title,
+        description: draft.description,
+        skills: draft.skills,
+        location: 'To be determined',
+        urgency: draft.urgency,
+        creatorId: 'org1',
+      });
+      
+      setTasks(prev => [result.task, ...prev]);
+      setDraft(null);
+      setRawText('');
+      setPublished(true);
+      
+      // Show matches if found
+      if (result.matches.length > 0) {
+        setMatches(result.matches.map(r => ({
+          ...r,
+          profile: r.volunteerName ? {
+            id: r.volunteerId,
+            name: r.volunteerName,
+            avatar: '',
+            skills: r.volunteerSkills || [],
+            bio: r.volunteerBio || '',
+            role: 'volunteer' as const,
+          } : profiles.find(p => p.id === r.volunteerId),
+        })));
+        setSelectedTask(result.task);
+      }
+      
+      setTimeout(() => setPublished(false), 3000);
+    } catch (err: any) {
+      toast({
+        title: 'Publishing Failed',
+        description: err.message || 'Could not create task. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const openMatching = async (task: Task) => {
@@ -149,9 +179,18 @@ export default function OrganizerDashboard() {
                   </Badge>
                 </div>
               </div>
-              <Button onClick={handlePublish} className="gap-2 gradient-secondary text-secondary-foreground border-0">
-                <Send className="h-4 w-4" />
-                Publish Task
+              <Button onClick={handlePublish} disabled={publishing} className="gap-2 gradient-secondary text-secondary-foreground border-0">
+                {publishing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Publish Task
+                  </>
+                )}
               </Button>
             </div>
           )}
@@ -238,9 +277,12 @@ export default function OrganizerDashboard() {
                         {Math.round(m.score * 100)}% match
                       </Badge>
                     </div>
-                    <div className="flex items-start gap-2 rounded-md bg-accent/50 p-2.5">
-                      <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-                      <p className="text-xs text-accent-foreground">{m.reason}</p>
+                    <div className="flex items-start gap-2 rounded-md bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10 p-2.5">
+                      <span className="text-lg">✨</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-primary mb-1">AI Insight</p>
+                        <p className="text-xs text-muted-foreground">{m.ai_reason || m.reason}</p>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {m.profile?.skills.map(s => <Badge key={s} variant="outline" className="text-xs">{s}</Badge>)}
