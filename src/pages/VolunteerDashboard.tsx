@@ -39,12 +39,13 @@ export default function VolunteerDashboard() {
     (async () => {
       try {
         const profiles = await getProfiles('volunteer');
-        const volunteerId = profiles[0]?.id;
-
-        if (!volunteerId) {
+        if (!profiles[0]?.id) {
           setLoading(false);
           return;
         }
+
+        const volId = profiles[0].id;
+        setVolunteerId(volId);
 
         // Load both recommendations and urgent invitations
         const [recommendations, pendingInvitations] = await Promise.all([
