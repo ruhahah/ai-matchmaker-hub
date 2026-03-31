@@ -200,18 +200,22 @@ export async function updateProfileWithAI(profileId: string, profileData: {
 
 export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
   try {
-    const { aiIntakeText: aiIntake } = await import('./ai-service');
-    const result = await aiIntake(rawText);
-    
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('ai-intake', {
+      body: { rawText },
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
     return {
-      title: result.title,
-      description: result.description,
-      skills: result.skills,
-      urgency: result.urgency,
+      title: data.title,
+      description: data.description,
+      skills: data.skills || [],
+      urgency: data.urgency || 'medium',
     };
   } catch (error) {
     console.error('AI intake error:', error);
-    // Fallback to basic parsing if AI fails
     return {
       title: rawText.slice(0, 50) + '...',
       description: rawText,
