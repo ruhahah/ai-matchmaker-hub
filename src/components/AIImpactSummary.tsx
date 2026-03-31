@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Sparkles, TrendingUp, Target, Zap, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface ImpactData {
@@ -30,14 +29,21 @@ export default function AIImpactSummary({ volunteerId }: AIImpactSummaryProps) {
     setLoading(true);
     setError(null);
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke('ai-impact-summary', {
-        body: { volunteerId },
-      });
+      // Mock implementation - генерируем данные локально
+      const mockData: ImpactData = {
+        archetype: 'Эко-Активист',
+        archetype_emoji: '🌱',
+        impact_summary: 'Благодаря тебе было посажено 50 деревьев и очищено 3 парка',
+        forecast: 'Твои навыки в организации экомероприятий могут помочь в создании зеленых зон города',
+        streak_text: '5 задач подряд!',
+        completed_tasks_count: 5,
+        volunteer_name: 'Алексей Волонтер'
+      };
 
-      if (fnError) throw fnError;
-      if (result?.error) throw new Error(result.error);
-
-      setData(result);
+      // Имитация задержки
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setData(mockData);
     } catch (err: any) {
       console.error('Impact summary error:', err);
       setError(err.message || 'Не удалось загрузить AI Impact Summary');
