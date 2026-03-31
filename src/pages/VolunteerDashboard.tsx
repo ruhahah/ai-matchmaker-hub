@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
+import AIImpactSummary from '@/components/AIImpactSummary';
 import { useToast } from '@/hooks/use-toast';
 
 interface RecommendedTask {
@@ -23,6 +24,7 @@ export default function VolunteerDashboard() {
   const [tasks, setTasks] = useState<RecommendedTask[]>([]);
   const [invitations, setInvitations] = useState<VolunteerInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [volunteerId, setVolunteerId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<RecommendedTask | null>(null);
   const [selectedInvitation, setSelectedInvitation] = useState<VolunteerInvitation | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
@@ -37,17 +39,18 @@ export default function VolunteerDashboard() {
     (async () => {
       try {
         const profiles = await getProfiles('volunteer');
-        const volunteerId = profiles[0]?.id;
-
-        if (!volunteerId) {
+        if (!profiles[0]?.id) {
           setLoading(false);
           return;
         }
 
+        const volId = profiles[0].id;
+        setVolunteerId(volId);
+
         // Load both recommendations and urgent invitations
         const [recommendations, pendingInvitations] = await Promise.all([
-          aiTaskRecommendations(volunteerId),
-          getPendingInvitations(volunteerId)
+          aiTaskRecommendations(volId),
+          getPendingInvitations(volId)
         ]);
 
         const recommended: RecommendedTask[] = recommendations
@@ -219,6 +222,9 @@ export default function VolunteerDashboard() {
 
   return (
     <div className="container max-w-3xl py-8 space-y-6">
+      {/* AI Impact Summary */}
+      {volunteerId && <AIImpactSummary volunteerId={volunteerId} />}
+
       <div>
         <h1 className="font-display text-2xl font-bold">Recommended for You</h1>
         <p className="text-muted-foreground text-sm mt-1">Tasks matched to your skills by AI</p>
