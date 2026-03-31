@@ -49,8 +49,8 @@ export default function VolunteerDashboard() {
 
         // Load both recommendations and urgent invitations
         const [recommendations, pendingInvitations] = await Promise.all([
-          aiTaskRecommendations(volunteerId),
-          getPendingInvitations(volunteerId)
+          aiTaskRecommendations(volId),
+          getPendingInvitations(volId)
         ]);
 
         const recommended: RecommendedTask[] = recommendations
