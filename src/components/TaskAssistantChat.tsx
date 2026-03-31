@@ -36,7 +36,9 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, 100);
   };
 
   useEffect(() => {
@@ -130,6 +132,11 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Explicit scroll after AI response
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200);
 
     } catch (error) {
       console.error('Error calling OpenAI API:', error);
@@ -144,6 +151,11 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
       };
       
       setMessages(prev => [...prev, errorMessage]);
+      
+      // Explicit scroll for fallback response
+      setTimeout(() => {
+        scrollToBottom();
+      }, 200);
     } finally {
       setIsLoading(false);
     }
@@ -175,8 +187,8 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
   };
 
   return (
-    <Card className="w-full h-[500px]">
-      <CardHeader className="pb-3 border-b">
+    <Card className="w-full h-[500px] flex flex-col">
+      <CardHeader className="pb-3 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Bot className="w-4 h-4 text-blue-600" />
@@ -198,100 +210,100 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
         </div>
       </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-3">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-              {messages.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="text-3xl mb-2">🤖</div>
-                  <p className="text-sm text-gray-600">
-                    Задайте вопрос об этой задаче, и я помогу!
-                  </p>
-                  <div className="mt-3 space-y-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs w-full justify-start h-auto p-2"
-                      onClick={() => setInput('Что нужно принести с собой?')}
-                    >
-                      💡 Что нужно принести с собой?
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs w-full justify-start h-auto p-2"
-                      onClick={() => setInput('Сколько времени займет задача?')}
-                    >
-                      💡 Сколько времени займет задача?
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs w-full justify-start h-auto p-2"
-                      onClick={() => setInput('Будет ли предоставлена форма?')}
-                    >
-                      💡 Будет ли предоставлена форма?
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+      <CardContent className="flex-1 flex flex-col p-3 min-h-0">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-2" style={{ maxHeight: 'calc(100% - 120px)' }}>
+          {messages.length === 0 && (
+            <div className="text-center py-8">
+              <div className="text-3xl mb-2">🤖</div>
+              <p className="text-sm text-gray-600">
+                Задайте вопрос об этой задаче, и я помогу!
+              </p>
+              <div className="mt-3 space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Что нужно принести с собой?')}
                 >
-                  <div
-                    className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                      message.role === 'user'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
-                  >
-                    <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                    <div className={`text-xs mt-1 ${
-                      message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Спросите об этой задаче..."
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="text-sm"
-              />
-              <Button 
-                onClick={sendMessage} 
-                disabled={!input.trim() || isLoading}
-                size="sm"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Send className="w-3 h-3" />
-                )}
-              </Button>
-            </div>
-
-            {/* RAG Context Info */}
-            <div className="mt-2 pt-2 border-t">
-              <div className="text-xs text-gray-500 flex items-center gap-1">
-                <Bot className="w-3 h-3" />
-                Ответы основаны только на описании задачи
+                  💡 Что нужно принести с собой?
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Сколько времени займет задача?')}
+                >
+                  💡 Сколько времени займет задача?
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Будет ли предоставлена форма?')}
+                >
+                  💡 Будет ли предоставлена форма?
+                </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                  message.role === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                <div className="text-sm whitespace-pre-wrap break-words">{message.content}</div>
+                <div className={`text-xs mt-1 ${
+                  message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {message.timestamp.toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="flex gap-2 flex-shrink-0">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Спросите об этой задаче..."
+            onKeyPress={handleKeyPress}
+            disabled={isLoading}
+            className="text-sm"
+          />
+          <Button 
+            onClick={sendMessage} 
+            disabled={!input.trim() || isLoading}
+            size="sm"
+          >
+            {isLoading ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Send className="w-3 h-3" />
+            )}
+          </Button>
+        </div>
+
+        {/* RAG Context Info */}
+        <div className="mt-2 pt-2 border-t flex-shrink-0">
+          <div className="text-xs text-gray-500 flex items-center gap-1">
+            <Bot className="w-3 h-3" />
+            Ответы основаны только на описании задачи
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

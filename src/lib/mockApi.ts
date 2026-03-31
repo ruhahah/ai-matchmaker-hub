@@ -79,11 +79,11 @@ export interface VolunteerInvitation {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const MOCK_TASKS: Task[] = [
-  { id: 't1', title: 'Paint community fence', description: 'The fence along Oak Street needs fresh paint. Supplies provided.', skills: ['painting', 'outdoors'], location: 'Oak Street Park', status: 'open', creatorId: 'org1' },
-  { id: 't2', title: 'Dog shelter weekend helper', description: 'Help walk and feed dogs at the local shelter on Saturday mornings.', skills: ['animals', 'caregiving'], location: 'Sunshine Animal Shelter', status: 'open', creatorId: 'org1' },
-  { id: 't3', title: 'Tutoring for teens', description: 'Provide math and science tutoring for high-school students after school.', skills: ['teaching', 'math', 'science'], location: 'Downtown Library', status: 'in_progress', creatorId: 'org1' },
-  { id: 't4', title: 'Community garden cleanup', description: 'Spring cleaning at the community garden. Weeding, planting, mulching.', skills: ['gardening', 'outdoors'], location: 'Elm Avenue Garden', status: 'open', creatorId: 'org1' },
-  { id: 't5', title: 'Senior tech assistance', description: 'Help senior citizens at the community center learn to use smartphones and tablets.', skills: ['technology', 'patience', 'teaching'], location: 'Golden Years Center', status: 'completed', creatorId: 'org1' },
+  { id: 't1', title: 'Покраска забора в парке', description: 'Покраска забора вдоль парка Горького. Все материалы предоставляются.', skills: ['painting', 'outdoors'], location: 'Москва, парк Горького', status: 'open', creatorId: 'org1' },
+  { id: 't2', title: 'Помощь в приюте для животных', description: 'Помощь в выгуле и кормлении собак в местном приюте по субботам.', skills: ['animals', 'caregiving'], location: 'Москва, приют "Друзья"', status: 'open', creatorId: 'org1' },
+  { id: 't3', title: 'Репетиторство для подростков', description: 'Проведение занятий по математике и естественным наукам для старшеклассников после школы.', skills: ['teaching', 'math', 'science'], location: 'Москва, Центральная библиотека', status: 'in_progress', creatorId: 'org1' },
+  { id: 't4', title: 'Уборка в общественном саду', description: 'Весенняя уборка в общественном саду. Прополка, посадка, мульчирование.', skills: ['gardening', 'outdoors'], location: 'Москва, сад "Эрмитаж"', status: 'open', creatorId: 'org1' },
+  { id: 't5', title: 'Техническая помощь пожилым', description: 'Помощь пожилым людям в изучении смартфонов и планшетов в общественном центре.', skills: ['technology', 'patience', 'teaching'], location: 'Москва, центр "Золотые годы"', status: 'completed', creatorId: 'org1' },
 ];
 
 // ===== API FUNCTIONS =====
@@ -133,11 +133,27 @@ export async function getProfiles(_role: string): Promise<Profile[]> {
   return [
     {
       id: 'mock-volunteer-1',
-      name: 'Mock Волонтер',
-      avatar: '',
-      skills: ['волонтерство', 'помощь'],
-      bio: 'Профиль для демонстрации',
+      name: 'Алексей Волонтер',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+      skills: ['волонтерство', 'помощь', 'IT поддержка'],
+      bio: 'Опытный волонтер из Москвы с 5+ годами помощи сообществу',
       role: 'volunteer' as const,
+    },
+    {
+      id: 'mock-volunteer-2',
+      name: 'Екатерина Волонтер',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ekaterina',
+      skills: ['экология', 'образование', 'организация'],
+      bio: 'Студентка из МГУ, люблю помогать в экологических проектах в Москве',
+      role: 'volunteer' as const,
+    },
+    {
+      id: 'mock-organizer-1',
+      name: 'Мария Организатор',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
+      skills: ['организация', 'координация', 'фандрайзинг'],
+      bio: 'Профессиональный организатор мероприятий из Москвы',
+      role: 'organizer' as const,
     }
   ];
 }

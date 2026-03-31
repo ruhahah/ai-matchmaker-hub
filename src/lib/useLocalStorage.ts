@@ -171,7 +171,25 @@ export class LocalStorageDB {
           name: 'Алексей Волонтер',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
           skills: ['Перевод', 'Обучение', 'IT поддержка'],
-          bio: 'Опытный волонтер с 5+ годами помощи',
+          bio: 'Опытный волонтер из Москвы с 5+ годами помощи сообществу',
+          role: 'volunteer',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-volunteer-2',
+          name: 'Екатерина Волонтер',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ekaterina',
+          skills: ['Гардening', 'Экология', 'Организация'],
+          bio: 'Студентка из МГУ, люблю помогать в экологических проектах',
+          role: 'volunteer',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-volunteer-3',
+          name: 'Дмитрий Волонтер',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dmitry',
+          skills: ['Животные', 'Ветеринария', 'Уход'],
+          bio: 'Ветеринар из Москвы, помогаю приютам для животных',
           role: 'volunteer',
           created_at: new Date().toISOString()
         },
@@ -180,7 +198,7 @@ export class LocalStorageDB {
           name: 'Мария Организатор',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
           skills: ['Организация', 'Координация', 'Фандрайзинг'],
-          bio: 'Профессиональный организатор мероприятий',
+          bio: 'Профессиональный организатор мероприятий из Москвы',
           role: 'organizer',
           created_at: new Date().toISOString()
         }
@@ -190,9 +208,9 @@ export class LocalStorageDB {
         {
           id: 'mock-task-1',
           title: 'Помощь в переводе документов',
-          description: 'Нужна помощь в переводе технической документации с английского на русский',
+          description: 'Нужна помощь в переводе технической документации с английского на русский. Работа удаленная, но встречи в Москве.',
           skills: ['Перевод', 'Технический английский'],
-          location: 'Удаленно',
+          location: 'Москва, удаленно',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()
@@ -200,9 +218,39 @@ export class LocalStorageDB {
         {
           id: 'mock-task-2',
           title: 'Обучение пожилых людей компьютерной грамотности',
-          description: 'Проведение занятий по основам работы с компьютером для пенсионеров',
+          description: 'Проведение занятий по основам работы с компьютером для пенсионеров в районном центре Москвы',
           skills: ['Обучение', 'Компьютерная грамотность'],
-          location: 'Москва',
+          location: 'Москва, центр города',
+          status: 'open',
+          creator_id: 'mock-organizer-1',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-task-3',
+          title: 'Уборка в парке "Сокольники"',
+          description: 'Помощь в весенней уборке парка, сбор мусора и посадка новых деревьев',
+          skills: ['Экология', 'Гардening', 'Работа на свежем воздухе'],
+          location: 'Москва, парк Сокольники',
+          status: 'open',
+          creator_id: 'mock-organizer-1',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-task-4',
+          title: 'Помощь в приюте для животных',
+          description: 'Выгул собак, уборка вольеров, помощь в кормлении животных в приюте на севере Москвы',
+          skills: ['Животные', 'Уход', 'Ветеринария'],
+          location: 'Москва, приют "Друзья"',
+          status: 'open',
+          creator_id: 'mock-organizer-1',
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'mock-task-5',
+          title: 'Организация детского праздника',
+          description: 'Помощь в организации праздника для детей из малообеспеченных семей в центре Москвы',
+          skills: ['Организация', 'Работа с детьми', 'Творчество'],
+          location: 'Москва, ВДНХ',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()

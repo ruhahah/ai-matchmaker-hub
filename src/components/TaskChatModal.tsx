@@ -44,8 +44,8 @@ export default function TaskChatModal({ isOpen, onClose, task }: TaskChatModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Bot className="w-5 h-5 text-blue-600" />
@@ -83,7 +83,7 @@ export default function TaskChatModal({ isOpen, onClose, task }: TaskChatModalPr
           </div>
         </DialogHeader>
         
-        <div className="mt-4">
+        <div className="flex-1 min-h-0 mt-4">
           <TaskAssistantChat task={task} />
         </div>
       </DialogContent>

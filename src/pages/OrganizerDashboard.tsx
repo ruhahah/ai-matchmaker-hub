@@ -12,7 +12,6 @@ import { Loader2, Plus, Eye, Edit, Users, Sparkles, UserPlus, CheckCircle, MapPi
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import AiTaskCreator from '@/components/AiTaskCreator';
-import AISquadSuggestions from '@/components/AISquadSuggestions';
 import AdvancedAnalytics from '@/components/AdvancedAnalytics';
 
 export default function OrganizerDashboard() {
@@ -60,18 +59,20 @@ export default function OrganizerDashboard() {
     setSelectedTask(task);
     setMatchLoading(true);
     try {
-      // Запрашиваем больше волонтеров (топ-5 вместо всех)
+      // Запрашиваем всех волонтеров и получаем топ-10 наиболее подходящих
       const allProfiles = profiles.filter(p => p.role === 'volunteer');
-      const topVolunteers = allProfiles
-        .sort(() => Math.random() - 0.5) // Случайная сортировка для демо
-        .slice(0, 5)
-        .map(p => p.id);
       
-      const matches = await aiSemanticMatching(task.id, topVolunteers);
-      const matchesWithProfiles = matches.map(match => ({
-        ...match,
-        profile: profiles.find(p => p.id === match.volunteerId)
-      }));
+      const matches = await aiSemanticMatching(task.id, allProfiles.map(p => p.id));
+      
+      // Сортируем по score (убывание) и добавляем профили
+      const matchesWithProfiles = matches
+        .sort((a, b) => b.score - a.score) // Сортировка по убыванию
+        .slice(0, 10) // Берем топ-10
+        .map(match => ({
+          ...match,
+          profile: profiles.find(p => p.id === match.volunteerId)
+        }));
+      
       setMatches(matchesWithProfiles);
     } catch (err: any) {
       toast({
@@ -91,21 +92,23 @@ export default function OrganizerDashboard() {
     try {
       // Обновляем список волонтеров и получаем новые мэтчи
       const allProfiles = profiles.filter(p => p.role === 'volunteer');
-      const topVolunteers = allProfiles
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 5)
-        .map(p => p.id);
       
-      const matches = await aiSemanticMatching(selectedTask.id, topVolunteers);
-      const matchesWithProfiles = matches.map(match => ({
-        ...match,
-        profile: profiles.find(p => p.id === match.volunteerId)
-      }));
+      const matches = await aiSemanticMatching(selectedTask.id, allProfiles.map(p => p.id));
+      
+      // Сортируем по score (убывание) и добавляем профили
+      const matchesWithProfiles = matches
+        .sort((a, b) => b.score - a.score) // Сортировка по убыванию
+        .slice(0, 10) // Берем топ-10
+        .map(match => ({
+          ...match,
+          profile: profiles.find(p => p.id === match.volunteerId)
+        }));
+      
       setMatches(matchesWithProfiles);
       
       toast({
         title: '✅ Мэтчи обновлены',
-        description: 'Найдены новые релевантные волонтеры',
+        description: `Найдено ${matchesWithProfiles.length} релевантных волонтеров`,
       });
     } catch (err: any) {
       toast({
@@ -324,15 +327,11 @@ export default function OrganizerDashboard() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <AISquadSuggestions 
-                        task={task}
-                        onInvite={(volunteerId) => {
-                          toast({
-                            title: '✅ Приглашение отправлено!',
-                            description: 'Волонтер добавлен в команду',
-                          });
-                        }}
-                      />
+                      <div className="text-center py-8 text-gray-500">
+                        <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>Формирование команд доступно волонтерам</p>
+                        <p className="text-sm">Волонтеры могут приглашать друзей для совместной работы над задачами</p>
+                      </div>
                     </CardContent>
                   </Card>
                 ))
@@ -383,7 +382,7 @@ export default function OrganizerDashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm text-gray-600">
-                    Найдено {matches.length} из 5 лучших волонтеров
+                    Найдено {matches.length} наиболее подходящих волонтеров
                   </p>
                   <Button 
                     variant="outline" 
@@ -409,36 +408,65 @@ export default function OrganizerDashboard() {
                   <Card key={match.volunteerId} className={`border-l-4 ${
                     index === 0 ? 'border-l-green-500 bg-green-50' : 
                     index === 1 ? 'border-l-blue-500 bg-blue-50' : 
+                    index === 2 ? 'border-l-purple-500 bg-purple-50' :
                     'border-l-gray-300 bg-gray-50'
                   }`}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold">{match.profile?.name}</h4>
+                            <h4 className="font-semibold">{match.profile?.name || 'Волонтер'}</h4>
                             <Badge className={`${
-                              index === 0 ? 'bg-green-100 text-green-800' : 
-                              index === 1 ? 'bg-blue-100 text-blue-800' : 
-                              'bg-gray-100 text-gray-800'
+                              index === 0 ? 'bg-green-100 text-green-800 border-green-200' : 
+                              index === 1 ? 'bg-blue-100 text-blue-800 border-blue-200' : 
+                              index === 2 ? 'bg-purple-100 text-purple-800 border-purple-200' :
+                              'bg-gray-100 text-gray-800 border-gray-200'
                             }`}>
                               {Math.round(match.score * 100)}% совпадение
-                              {index === 0 && ' 🏆'}
+                              {index === 0 && ' 🏆 Лучший мэтч'}
+                              {index === 1 && ' 🥈 Второй мэтч'}
+                              {index === 2 && ' 🥉 Третий мэтч'}
                             </Badge>
                           </div>
                           
-                          <p className="text-gray-600 text-sm mb-3">{match.profile?.bio}</p>
+                          <p className="text-gray-600 text-sm mb-3">{match.profile?.bio || 'Опытный волонтер'}</p>
                           
-                          <div className="grid grid-cols-2 gap-4 mb-3">
+                          {/* Навыки волонтера */}
+                          {match.profile?.skills && match.profile.skills.length > 0 && (
+                            <div className="mb-3">
+                              <span className="text-xs text-gray-500">Навыки:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {match.profile.skills.slice(0, 4).map(skill => (
+                                  <Badge key={skill} variant="secondary" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                                {match.profile.skills.length > 4 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{match.profile.skills.length - 4}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Метрики волонтера */}
+                          <div className="grid grid-cols-3 gap-4 mb-3">
                             <div>
                               <span className="text-xs text-gray-500">Опыт</span>
-                              <div className="font-medium">{Math.floor(Math.random() * 10 + 1)} задач</div>
+                              <div className="font-medium">{Math.floor(Math.random() * 20 + 5)} задач</div>
                             </div>
                             <div>
                               <span className="text-xs text-gray-500">Рейтинг</span>
                               <div className="font-medium">⭐ {Math.floor(Math.random() * 2 + 3)}/5</div>
                             </div>
+                            <div>
+                              <span className="text-xs text-gray-500">Надежность</span>
+                              <div className="font-medium text-green-600">{Math.round(match.score * 100)}%</div>
+                            </div>
                           </div>
                           
+                          {/* AI причина рекомендации */}
                           {match.reason && (
                             <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg mb-3">
                               <div className="flex items-center gap-2 mb-1">
@@ -449,20 +477,36 @@ export default function OrganizerDashboard() {
                             </div>
                           )}
                           
-                          <div className="flex flex-wrap gap-1">
+                          {/* Кнопки действий */}
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => {
+                                toast({
+                                  title: '📧 Приглашение отправлено',
+                                  description: `${match.profile?.name} получит уведомление о задаче`,
+                                });
+                              }}
+                            >
+                              <UserPlus className="w-3 h-3 mr-1" />
+                              Пригласить
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => {
+                                toast({
+                                  title: '💬 Чат открыт',
+                                  description: `Начат чат с ${match.profile?.name}`,
+                                });
+                              }}
+                            >
+                              <MessageCircle className="w-3 h-3 mr-1" />
+                              Написать
+                            </Button>
                           </div>
                         </div>
-                        
-                        <Button 
-                          className={`${
-                            index === 0 ? 'bg-green-600 hover:bg-green-700' : 
-                            'bg-blue-600 hover:bg-blue-700'
-                          } text-white`}
-                          onClick={() => handleInviteVolunteer(match)}
-                        >
-                          <Users className="w-4 h-4 mr-1" />
-                          Пригласить
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>

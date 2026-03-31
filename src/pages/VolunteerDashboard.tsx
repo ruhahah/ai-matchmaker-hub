@@ -13,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
 import TaskChatModal from '@/components/TaskChatModal';
 import AISquadSuggestions from '@/components/AISquadSuggestions';
+import FriendsTeamInvitation from '@/components/FriendsTeamInvitation';
+import FriendsManagement from '@/components/FriendsManagement';
 import DiscoveryFeed from '@/components/DiscoveryFeed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -41,6 +43,11 @@ export default function VolunteerDashboard() {
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [chatTask, setChatTask] = useState<RecommendedTask | null>(null);
   const [squadTaskId, setSquadTaskId] = useState<string | null>(null);
+  const [friendsTeamOpen, setFriendsTeamOpen] = useState(false);
+  const [friendsTaskId, setFriendsTaskId] = useState<string | null>(null);
+  const [friendsTaskTitle, setFriendsTaskTitle] = useState<string>('');
+  const [friendsTaskLocation, setFriendsTaskLocation] = useState<string>('');
+  const [friendsManagementOpen, setFriendsManagementOpen] = useState(false);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
@@ -252,17 +259,27 @@ export default function VolunteerDashboard() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">Recommended for You</h1>
+          <h1 className="font-display text-2xl font-bold">Рекомендуемые задачи</h1>
           <p className="text-muted-foreground text-sm mt-1">Tasks matched to your skills by AI</p>
         </div>
-        <Button 
-          onClick={() => navigate('/volunteer/profile')}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <User className="w-4 h-4" />
-          Мой профиль
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setFriendsManagementOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <User className="w-4 h-4" />
+            Друзья
+          </Button>
+          <Button 
+            onClick={() => navigate('/volunteer/profile')}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <User className="w-4 h-4" />
+            Мой профиль
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -270,11 +287,29 @@ export default function VolunteerDashboard() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">AI is finding your best matches...</p>
         </div>
-      ) : tasks.length === 0 ? (
-        <p className="text-center text-muted-foreground py-16">No recommended tasks right now. Check back soon!</p>
       ) : (
-        <div className="grid gap-4">
-          {tasks.map((task, i) => (
+        <Tabs defaultValue="available" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="available" className="flex items-center gap-2">
+              Доступные задачи
+              <Badge variant="secondary" className="text-xs">
+                {tasks.filter(task => !applied.has(task.id)).length}
+              </Badge>
+            </TabsTrigger>
+            <TabsTrigger value="applied" className="flex items-center gap-2">
+              Мои заявки
+              <Badge variant="secondary" className="text-xs">
+                {tasks.filter(task => applied.has(task.id)).length}
+              </Badge>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="available" className="space-y-4">
+            {tasks.filter(task => !applied.has(task.id)).length === 0 ? (
+              <p className="text-center text-muted-foreground py-16">Нет доступных задач. Проверьте позже!</p>
+            ) : (
+              <div className="grid gap-4">
+                {tasks.filter(task => !applied.has(task.id)).map((task, i) => (
             <Card
               key={task.id}
               className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30 animate-slide-up"
@@ -335,30 +370,138 @@ export default function VolunteerDashboard() {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSquadTaskId(task.id);
+                      setFriendsTaskId(task.id);
+                      setFriendsTaskTitle(task.title);
+                      setFriendsTaskLocation(task.location);
+                      setFriendsTeamOpen(true);
                     }}
                     className="w-full flex items-center gap-2"
                   >
                     <User className="w-4 h-4" />
-                    Собрать команду
+                    Собрать команду из друзей
+                  </Button>
+                  
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApply(task.id);
+                      toast({
+                        title: '✅ Заявка подана!',
+                        description: 'Вы подали заявку на участие в задаче',
+                      });
+                    }}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    Подать заявку
                   </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="applied" className="space-y-4">
+            {tasks.filter(task => applied.has(task.id)).length === 0 ? (
+              <p className="text-center text-muted-foreground py-16">У вас пока нет заявок на задачи.</p>
+            ) : (
+              <div className="grid gap-4">
+                {tasks.filter(task => applied.has(task.id)).map((task, i) => (
+            <Card
+              key={task.id}
+              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30 animate-slide-up opacity-75"
+              style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}
+              onClick={() => { setSelectedTask(task); setVisionResult(null); setSelectedPhoto(null); }}
+            >
+              <CardContent className="p-5 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display font-semibold">{task.title}</h3>
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Заявка подана
+                      </Badge>
+                      {task.status === 'completed' && (
+                        <Badge className="bg-success/10 text-success border-success/20">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                      <MapPin className="h-3 w-3" />
+                      {task.location}
+                    </div>
+                  </div>
+                  {task.status !== 'completed' && (
+                    <Badge className="gradient-primary text-primary-foreground border-0 shrink-0">
+                      {Math.round(task.score * 100)}%
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Trust UI — AI Explanation */}
+                <div className="flex items-start gap-2 rounded-lg bg-accent/60 p-3">
+                  <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-primary animate-pulse-glow" />
+                  <p className="text-xs text-accent-foreground leading-relaxed">{task.reason}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {task.skills.map(s => <Badge key={s} variant={"outline" as const} className="text-xs">{s}</Badge>)}
+                </div>
+
+                {/* Task Assistant Chat Button */}
+                <div className="pt-2 border-t space-y-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                    e.stopPropagation();
+                    openChatModal(task);
+                  }}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Спросить ИИ о задаче
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
-      {/* AI Squad Suggestions - для формирования команды */}
-      {squadTaskId && (
-        <AISquadSuggestions 
-          task={tasks.find(t => t.id === squadTaskId) || tasks[0]}
-          onInvite={(volunteerId) => {
-            toast({
-              title: '🤝 Приглашение отправлено!',
-              description: 'Волонтер получил приглашение в вашу команду',
-            });
+      {/* Friends Management */}
+      {friendsManagementOpen && volunteerId && (
+        <FriendsManagement
+          isOpen={friendsManagementOpen}
+          onClose={() => setFriendsManagementOpen(false)}
+          currentUserId={volunteerId}
+        />
+      )}
+
+      {/* Friends Team Invitation - для формирования команды из друзей */}
+      {friendsTeamOpen && volunteerId && (
+        <FriendsTeamInvitation
+          taskId={friendsTaskId || ''}
+          taskTitle={friendsTaskTitle}
+          taskLocation={friendsTaskLocation}
+          isOpen={friendsTeamOpen}
+          onClose={() => {
+            setFriendsTeamOpen(false);
+            setFriendsTaskId(null);
+            setFriendsTaskTitle('');
+            setFriendsTaskLocation('');
           }}
+          currentUserId={volunteerId}
         />
       )}
 

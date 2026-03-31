@@ -17,9 +17,7 @@ import {
   BarChart3,
   PieChart,
   ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Filter
+  ArrowDownRight
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -343,17 +341,7 @@ export default function AdvancedAnalytics() {
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Calendar className="w-4 h-4 mr-2" />
-            Экспорт отчета
-          </Button>
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Фильтры
-          </Button>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={generateAnalyticsData} size="sm">
           <Activity className="w-4 h-4 mr-2" />
           Обновить данные
