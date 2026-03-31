@@ -419,9 +419,26 @@ export default function VolunteerProfile() {
         </Tabs>
 
         <div className="mt-8 flex justify-between">
-          <Button variant="outline" onClick={() => navigate('/volunteer/dashboard')}>
-            Вернуться к дашборду
-          </Button>
+          <div>
+            <Button 
+              variant="outline" 
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button clicked, attempting navigation...');
+                try {
+                  navigate('/volunteer/dashboard', { replace: true });
+                } catch (error) {
+                  console.error('Navigation error:', error);
+                  // Fallback to window.location
+                  window.location.href = '/volunteer/dashboard';
+                }
+              }}
+            >
+              Вернуться к дашборду
+            </Button>
+          </div>
           
           <Button 
             onClick={saveProfile}

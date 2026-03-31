@@ -318,7 +318,10 @@ export default function VolunteerDashboard() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => openChatModal(task)}
+                    onClick={(e) => {
+                    e.stopPropagation();
+                    openChatModal(task);
+                  }}
                     className="w-full flex items-center gap-2"
                   >
                     <Bot className="w-4 h-4" />
