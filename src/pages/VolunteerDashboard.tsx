@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
+import AIImpactSummary from '@/components/AIImpactSummary';
+import { useToast } from '@/hooks/use-toast';
 
 interface RecommendedTask {
   id: string;
