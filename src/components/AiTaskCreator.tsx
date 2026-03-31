@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
+import { createTask } from '../lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, Users, AlertCircle, Send, CheckCircle } from 'lucide-react';
 
 interface Message {
@@ -57,43 +57,31 @@ export default function AiTaskCreator() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-task-creator`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: input.trim(),
-            conversationHistory: messages.map(m => ({
-              role: m.role,
-              content: m.content
-            }))
-          })
+      // Mock AI response for demo
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockAiResponse = {
+        content: {
+          title: "Помощь в организации эко-субботника",
+          description: "Нужны волонтеры для уборки парка и посадки деревьев",
+          skills: ["Экология", "Работа на свежем воздухе", "Уборка"],
+          urgency: "medium" as const,
+          location: "Центральный парк",
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          required_volunteers: 10
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
-      }
-
-      const aiResponse: AiResponse = await response.json();
+      };
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: typeof aiResponse.content === 'string' 
-          ? aiResponse.content 
-          : JSON.stringify(aiResponse.content, null, 2),
+        content: typeof mockAiResponse.content === 'string' 
+          ? mockAiResponse.content 
+          : JSON.stringify(mockAiResponse.content, null, 2),
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      if (aiResponse.type === 'task_data' && typeof aiResponse.content === 'object') {
-        setTaskData(aiResponse.content);
-      }
+      setTaskData(mockAiResponse.content);
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -116,47 +104,20 @@ export default function AiTaskCreator() {
     setIsPublishing(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      // Mock user ID for demo
+      const mockUserId = 'mock-organizer-1';
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert({
-          creator_id: user.id,
-          title: taskData.title,
-          description: taskData.description,
-          location: taskData.location,
-          start_time: new Date(taskData.date).toISOString(),
-          required_volunteers: taskData.required_volunteers,
-          skills: taskData.skills,
-          urgency: taskData.urgency,
-          status: 'open'
-        })
-        .select()
-        .single();
+      const newTask = await createTask({
+        creator_id: mockUserId,
+        title: taskData.title,
+        description: taskData.description,
+        location: taskData.location,
+        skills: taskData.skills,
+        status: 'open'
+      });
 
-      if (error) {
-        throw error;
-      }
-
-      // Trigger AI matching for the new task
-      await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/semantic-match`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            taskId: data.id,
-            mode: 'volunteers-for-task'
-          })
-        }
-      );
+      // Mock AI matching call
+      console.log('AI matching triggered for task:', newTask.id);
 
       // Reset component
       setMessages([]);

@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL || 'https://vnghhecncidqeuoiadpq.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { localStorageDB } from './useLocalStorage';
 
 export interface DemoVolunteerProfile {
   id: string;
@@ -11,46 +6,64 @@ export interface DemoVolunteerProfile {
   avatar: string;
   skills: string[];
   bio: string;
-  role: 'volunteer';
-  rating?: number;
-  completedTasks?: number;
-  joinedAt?: string;
+  completedTasks: number;
+  totalHours: number;
+  impactAreas: string[];
+  achievements: string[];
 }
 
-export async function getDemoProfile(): Promise<DemoVolunteerProfile | null> {
-  // Check localStorage first
-  const storedProfile = localStorage.getItem('demoVolunteerProfile');
-  
-  if (storedProfile) {
-    try {
-      return JSON.parse(storedProfile) as DemoVolunteerProfile;
-    } catch {
-      return null;
+export const getDemoVolunteerProfile = async (volunteerId: string): Promise<DemoVolunteerProfile | null> => {
+  try {
+    const profile = localStorageDB.getProfile(volunteerId);
+    if (!profile) return null;
+
+    const applications = localStorageDB.getApplications(undefined, volunteerId);
+    const completedTasks = applications.filter(app => app.status === 'approved').length;
+
+    return {
+      id: profile.id,
+      name: profile.name,
+      avatar: profile.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Default',
+      skills: profile.skills || [],
+      bio: profile.bio || '',
+      completedTasks,
+      totalHours: completedTasks * 3, // Mock: 3 hours per task
+      impactAreas: profile.skills || [],
+      achievements: [
+        'Первый выполненный проект',
+        'Помощь сообществу',
+        'Надежный партнер'
+      ]
+    };
+  } catch (error) {
+    console.error('Error fetching demo profile:', error);
+    return null;
+  }
+};
+
+export const updateDemoVolunteerProfile = async (
+  volunteerId: string,
+  updates: Partial<DemoVolunteerProfile>
+): Promise<DemoVolunteerProfile> => {
+  try {
+    const profile = localStorageDB.updateProfile(volunteerId, updates);
+    if (!profile) {
+      throw new Error('Profile not found');
     }
-  }
-  
-  // Return default demo profile if no stored profile
-  return {
-    id: 'demo-volunteer-alikhan',
-    name: 'Алихан Смаилов',
-    avatar: '',
-    skills: ['React', 'Graphic Design', 'Social Media', 'Environmental Volunteering'],
-    bio: 'Студент 11 класса, увлекаюсь экологией и IT. Хочу помочьать городу Шымкент становиться чище и современнее.',
-    role: 'volunteer' as const,
-    rating: 4.8,
-    completedTasks: 12,
-    joinedAt: new Date(Date.now() - 90 * 24 * 60 * 1000).toISOString()
-  };
-}
 
-export async function setDemoProfile(profile: DemoVolunteerProfile): Promise<void> {
-  localStorage.setItem('demoVolunteerProfile', JSON.stringify(profile));
-}
-
-export async function updateDemoProfileRating(rating: number): Promise<void> {
-  const profile = await getDemoProfile();
-  if (profile) {
-    profile.rating = rating;
-    await setDemoProfile(profile);
+    return {
+      id: profile.id,
+      name: profile.name,
+      avatar: profile.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Default',
+      skills: profile.skills || [],
+      bio: profile.bio || '',
+      completedTasks: 0,
+      totalHours: 0,
+      impactAreas: profile.skills || [],
+      achievements: []
+    };
+  } catch (error) {
+    console.error('Error updating demo profile:', error);
+    throw error;
   }
-}
+};
