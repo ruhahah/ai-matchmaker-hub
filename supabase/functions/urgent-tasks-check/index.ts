@@ -44,7 +44,7 @@ serve(async (req) => {
         id, 
         title, 
         description, 
-        skills, 
+        skills,
         location, 
         urgency,
         embedding,

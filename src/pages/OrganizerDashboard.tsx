@@ -2,24 +2,20 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
-import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, createTaskWithAI, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, Sparkles, MapPin, Users, CheckCircle2, Clock, Eye, Bot } from 'lucide-react';
+import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
+import AiTaskCreator from '@/components/AiTaskCreator';
 
 export default function OrganizerDashboard() {
-  const [rawText, setRawText] = useState('');
-  const [parsing, setParsing] = useState(false);
-  const [draft, setDraft] = useState<IntakeResult | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [matches, setMatches] = useState<(MatchingResult & { profile?: Profile })[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [published, setPublished] = useState(false);
 
   useEffect(() => {
     Promise.all([getTasks('organizer'), getProfiles('volunteer')]).then(([t, p]) => {
@@ -31,92 +27,20 @@ export default function OrganizerDashboard() {
 
   const { toast } = useToast();
 
-  const handleParse = async () => {
-    if (!rawText.trim()) return;
-    setParsing(true);
-    setPublished(false);
-    try {
-      const result = await aiIntakeText(rawText);
-      setDraft(result);
-    } catch (err: any) {
-      toast({
-        title: 'AI Processing Failed',
-        description: err.message || 'Could not parse the text. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setParsing(false);
-    }
-  };
-
-  const [publishing, setPublishing] = useState(false);
-
-  const handlePublish = async () => {
-    if (!draft) return;
-    setPublishing(true);
-    try {
-      const result = await createTaskWithAI({
-        title: draft.title,
-        description: draft.description,
-        skills: draft.skills,
-        location: 'To be determined',
-        urgency: draft.urgency,
-        creatorId: 'org1',
-      });
-      
-      setTasks(prev => [result.task, ...prev]);
-      setDraft(null);
-      setRawText('');
-      setPublished(true);
-      
-      // Show matches if found
-      if (result.matches.length > 0) {
-        setMatches(result.matches.map(r => ({
-          ...r,
-          profile: r.volunteerName ? {
-            id: r.volunteerId,
-            name: r.volunteerName,
-            avatar: '',
-            skills: r.volunteerSkills || [],
-            bio: r.volunteerBio || '',
-            role: 'volunteer' as const,
-          } : profiles.find(p => p.id === r.volunteerId),
-        })));
-        setSelectedTask(result.task);
-      }
-      
-      setTimeout(() => setPublished(false), 3000);
-    } catch (err: any) {
-      toast({
-        title: 'Publishing Failed',
-        description: err.message || 'Could not create task. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const openMatching = async (task: Task) => {
+  const handleViewMatches = async (task: Task) => {
     setSelectedTask(task);
     setMatchLoading(true);
     try {
-      const results = await aiSemanticMatching(task.id, []);
-      setMatches(results.map(r => ({
-        ...r,
-        profile: r.volunteerName ? {
-          id: r.volunteerId,
-          name: r.volunteerName,
-          avatar: '',
-          skills: r.volunteerSkills || [],
-          bio: r.volunteerBio || '',
-          role: 'volunteer' as const,
-        } : profiles.find(p => p.id === r.volunteerId),
-      })));
+      const matches = await aiSemanticMatching(task.id);
+      const matchesWithProfiles = matches.map(match => ({
+        ...match,
+        profile: profiles.find(p => p.id === match.volunteerId)
+      }));
+      setMatches(matchesWithProfiles);
     } catch (err: any) {
       toast({
-        title: 'Matching Failed',
-        description: err.message || 'Could not find matches.',
+        title: 'Failed to load matches',
+        description: err.message || 'Could not load volunteer matches.',
         variant: 'destructive',
       });
     } finally {
@@ -124,176 +48,292 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const statusIcon = (s: Task['status']) => {
-    if (s === 'completed') return <CheckCircle2 className="h-4 w-4 text-success" />;
-    if (s === 'verifying') return <Clock className="h-4 w-4 text-warning" />;
-    return <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'verifying': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      {/* AI Intake */}
-      <Card className="ai-glow border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-display">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Create Task with AI
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Describe what you need in plain language, e.g. 'We need someone to paint the fence on Saturday'..."
-            value={rawText}
-            onChange={e => setRawText(e.target.value)}
-            className="min-h-[100px] resize-none"
-          />
-          <Button onClick={handleParse} disabled={parsing || !rawText.trim()} className="gap-2">
-            {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {parsing ? 'AI is parsing...' : 'Parse with AI'}
-          </Button>
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open': return 'Открыта';
+      case 'verifying': return 'Проверка';
+      case 'completed': return 'Завершена';
+      case 'cancelled': return 'Отменена';
+      default: return status;
+    }
+  };
 
-          {draft && (
-            <div className="animate-slide-up space-y-4 rounded-lg border bg-accent/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">AI-Generated Draft</p>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
-                  <Input value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Skills</label>
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    {draft.skills.map(s => (
-                      <Badge key={s} variant="secondary">{s}</Badge>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Urgency</label>
-                  <Badge variant={draft.urgency === 'high' ? 'destructive' : 'outline'} className="ml-2 capitalize">
-                    {draft.urgency}
-                  </Badge>
-                </div>
-              </div>
-              <Button onClick={handlePublish} disabled={publishing} className="gap-2 gradient-secondary text-secondary-foreground border-0">
-                {publishing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Publishing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    Publish Task
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'high': return 'bg-red-100 text-red-800';
+      case 'medium': return 'bg-orange-100 text-orange-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-          {published && (
-            <div className="animate-slide-up flex items-center gap-2 text-sm text-success font-medium">
-              <CheckCircle2 className="h-4 w-4" />
-              Task published successfully!
-            </div>
-          )}
-        </CardContent>
-      </Card>
+  const getUrgencyLabel = (urgency: string) => {
+    switch (urgency) {
+      case 'high': return 'Срочно';
+      case 'medium': return 'Средняя';
+      case 'low': return 'Низкая';
+      default: return urgency;
+    }
+  };
 
-      {/* Tasks List */}
-      <div>
-        <h2 className="font-display text-xl font-semibold mb-4">My Tasks</h2>
-        {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : tasks.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">No tasks yet. Create your first task above!</p>
-        ) : (
-          <div className="grid gap-3">
-            {tasks.map(task => (
-              <Card key={task.id} className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30" onClick={() => openMatching(task)}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {statusIcon(task.status)}
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{task.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                        <MapPin className="h-3 w-3" />
-                        {task.location}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-xs capitalize">{task.status}</Badge>
-                    <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">
-                      <Users className="h-3 w-3" />
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
       </div>
+    );
+  }
 
-      {/* Matching Modal */}
-      <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display">{selectedTask?.title}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">{selectedTask?.description}</p>
-          <div className="flex flex-wrap gap-1.5 my-2">
-            {selectedTask?.skills.map(s => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
-          </div>
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            🏛️ Кабинет организатора
+          </h1>
+          <p className="text-gray-600">
+            Управляйте социальными задачами и находите идеальных волонтеров с помощью AI
+          </p>
+        </div>
 
-          <h3 className="font-display font-semibold mt-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            AI-Matched Volunteers
-          </h3>
+        <Tabs defaultValue="create" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="create" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Создать задачу
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Активные задачи ({tasks.length})
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              Аналитика
+            </TabsTrigger>
+          </TabsList>
 
-          {matchLoading ? (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Finding best matches...</p>
-            </div>
-          ) : (
-            <div className="space-y-3 mt-2">
-              {matches.map(m => (
-                <Card key={m.volunteerId} className="border-primary/10">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                          {m.profile?.name?.charAt(0) || '?'}
-                        </div>
-                        <span className="font-medium">{m.profile?.name || m.volunteerId}</span>
-                      </div>
-                      <Badge className="gradient-primary text-primary-foreground border-0">
-                        {Math.round(m.score * 100)}% match
-                      </Badge>
-                    </div>
-                    <div className="flex items-start gap-2 rounded-md bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10 p-2.5">
-                      <span className="text-lg">✨</span>
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-primary mb-1">AI Insight</p>
-                        <p className="text-xs text-muted-foreground">{m.ai_reason || m.reason}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {m.profile?.skills.map(s => <Badge key={s} variant="outline" className="text-xs">{s}</Badge>)}
-                    </div>
+          <TabsContent value="create">
+            <AiTaskCreator />
+          </TabsContent>
+
+          <TabsContent value="tasks">
+            <div className="grid gap-6">
+              {tasks.length === 0 ? (
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Пока нет задач
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Создайте свою первую задачу с помощью AI-координатора
+                    </p>
+                    <Button onClick={() => window.location.reload()}>
+                      Перейти к созданию
+                    </Button>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                tasks.map((task) => (
+                  <Card key={task.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-xl mb-2">{task.title}</CardTitle>
+                          <p className="text-gray-600 mb-4">{task.description}</p>
+                          
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <Badge className={getStatusColor(task.status)}>
+                              {getStatusLabel(task.status)}
+                            </Badge>
+                            <Badge className={getUrgencyColor(task.urgency)}>
+                              {getUrgencyLabel(task.urgency)}
+                            </Badge>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {task.location}
+                            </Badge>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {task.requiredVolunteers} волонтеров
+                            </Badge>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(task.startTime).toLocaleDateString('ru-RU')}
+                            </Badge>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1">
+                            {task.skills.map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewMatches(task)}
+                            disabled={matchLoading}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Мэтчи
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                ))
+              )}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">📊 Всего задач</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-blue-600">{tasks.length}</div>
+                  <p className="text-sm text-gray-600 mt-1">Активных проектов</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">👥 Волонтеры</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-green-600">{profiles.length}</div>
+                  <p className="text-sm text-gray-600 mt-1">В базе данных</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">🤖 AI-мэтчинг</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-purple-600">100%</div>
+                  <p className="text-sm text-gray-600 mt-1">Автоматизация</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">📈 Статистика по задачам</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium">{task.title}</div>
+                        <div className="text-sm text-gray-600">
+                          {task.applications?.length || 0} откликов
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm font-medium ${getStatusColor(task.status)}`}>
+                          {getStatusLabel(task.status)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(task.startTime).toLocaleDateString('ru-RU')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Task Matches Dialog */}
+        <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                AI-рекомендации для "{selectedTask?.title}"
+              </DialogTitle>
+            </DialogHeader>
+            
+            {matchLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span className="ml-2">AI ищет идеальных кандидатов...</span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {matches.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-2">🤷‍♂️</div>
+                    <p className="text-gray-600">Подходящих волонтеров пока не найдено</p>
+                  </div>
+                ) : (
+                  matches.map((match, index) => (
+                    <Card key={match.volunteerId} className="border-l-4 border-l-blue-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-semibold">{match.profile?.name}</h4>
+                              <Badge className="bg-blue-100 text-blue-800">
+                                {Math.round(match.score * 100)}% совпадение
+                              </Badge>
+                            </div>
+                            
+                            <p className="text-gray-600 text-sm mb-3">{match.profile?.bio}</p>
+                            
+                            {match.reason && (
+                              <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Sparkles className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium text-blue-900">Почему рекомендуем:</span>
+                                </div>
+                                <p className="text-blue-800 text-sm">{match.reason}</p>
+                              </div>
+                            )}
+                            
+                            <div className="flex flex-wrap gap-1">
+                              {match.profile?.skills.map((skill, skillIndex) => (
+                                <Badge key={skillIndex} variant="secondary" className="text-xs">
+                                  {skill}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <Button className="ml-4">
+                            <Users className="w-4 h-4 mr-1" />
+                            Пригласить
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

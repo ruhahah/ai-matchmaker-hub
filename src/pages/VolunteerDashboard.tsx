@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
+import TaskAssistantChat from '@/components/TaskAssistantChat';
 
 interface RecommendedTask {
   id: string;
@@ -17,6 +18,9 @@ interface RecommendedTask {
   status: string;
   score: number;
   reason: string;
+  startTime?: string;
+  requiredVolunteers?: number;
+  urgency?: 'low' | 'medium' | 'high';
 }
 
 export default function VolunteerDashboard() {
@@ -273,6 +277,20 @@ export default function VolunteerDashboard() {
                 <div className="flex flex-wrap gap-1.5">
                   {task.skills.map(s => <Badge key={s} variant={"outline" as const} className="text-xs">{s}</Badge>)}
                 </div>
+
+                {/* Task Assistant Chat */}
+                <div className="pt-2 border-t">
+                  <TaskAssistantChat task={{
+                    id: task.id,
+                    title: task.title,
+                    description: task.description,
+                    location: task.location,
+                    startTime: task.startTime || new Date().toISOString(),
+                    requiredVolunteers: task.requiredVolunteers || 1,
+                    skills: task.skills,
+                    urgency: task.urgency || 'medium'
+                  }} />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -392,6 +410,22 @@ export default function VolunteerDashboard() {
             <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
             <p className="text-xs text-accent-foreground">{selectedTask?.reason}</p>
           </div>
+
+          {/* Task Assistant Chat in Modal */}
+          {selectedTask && (
+            <div className="mt-4">
+              <TaskAssistantChat task={{
+                id: selectedTask.id,
+                title: selectedTask.title,
+                description: selectedTask.description,
+                location: selectedTask.location,
+                startTime: selectedTask.startTime || new Date().toISOString(),
+                requiredVolunteers: selectedTask.requiredVolunteers || 1,
+                skills: selectedTask.skills,
+                urgency: selectedTask.urgency || 'medium'
+              }} />
+            </div>
+          )}
 
           {selectedTask && !applied.has(selectedTask.id) && selectedTask.status !== 'completed' ? (
             <Button onClick={() => handleApply(selectedTask.id)} className="w-full gap-2">
