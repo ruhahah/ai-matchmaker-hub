@@ -8,13 +8,28 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Log request details for debugging
+  console.log("Request method:", req.method);
+  console.log("Request URL:", req.url);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+
   try {
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
+    // For urgent-tasks-check, we don't need a body - it runs automatically
+    // But we'll accept any body for flexibility
+    let body = {};
+    try {
+      body = await req.json();
+      console.log("Request body:", body);
+    } catch (e) {
+      console.log("No body or invalid JSON, continuing...");
+    }
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiApiKey) throw new Error("OPENAI_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -91,8 +106,7 @@ serve(async (req) => {
           task.title,
           task.description,
           task.skills,
-          task.location,
-          task.start_time
+          openaiApiKey
         );
 
         // Save invitation to database
@@ -150,18 +164,17 @@ async function generatePersonalizedInvitation(
   taskTitle: string,
   taskDescription: string,
   taskSkills: string[],
-  taskLocation: string,
-  taskStartTime: string
+  apiKey: string
 ): Promise<string> {
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -170,19 +183,20 @@ async function generatePersonalizedInvitation(
           },
           {
             role: "user",
-            content: `Волонтер: ${volunteerName}, навыки: ${volunteerSkills.join(', ')}, био: "${volunteerBio}"
-            
-            Задача: "${taskTitle}" - ${taskDescription}
-            Требуемые навыки: ${taskSkills.join(', ')}
-            Место: ${taskLocation}
-            Время: ${new Date(taskStartTime).toLocaleString('ru-RU')}
+            content: `ВОЛОНТЕР:
+Имя: ${volunteerName}
+Навыки: ${volunteerSkills.join(", ")}
+О себе: ${volunteerBio}
 
-            Создай персонализированное приглашение.`
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 150
-      }),
+ЗАДАЧА:
+Название: ${taskTitle}
+Описание: ${taskDescription}
+Требуемые навыки: ${taskSkills.join(", ")}
+
+Создай персонализированное приглашение.`
+          }
+        ]
+      })
     });
 
     if (!response.ok) {

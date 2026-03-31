@@ -62,10 +62,32 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for re-runnable migrations)
+DROP POLICY IF EXISTS "Users can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
+
 -- Profiles policies
 CREATE POLICY "Users can view all profiles" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Drop existing policies if they exist (for re-runnable migrations)
+DROP POLICY IF EXISTS "Users can view all applications" ON applications;
+DROP POLICY IF EXISTS "Users can insert own applications" ON applications;
+DROP POLICY IF EXISTS "Users can update own applications" ON applications;
+
+-- Applications policies
+CREATE POLICY "Users can view all applications" ON applications FOR SELECT USING (true);
+CREATE POLICY "Users can insert own applications" ON applications FOR INSERT WITH CHECK (auth.uid() = volunteer_id);
+CREATE POLICY "Users can update own applications" ON applications FOR UPDATE USING (
+  auth.uid() = volunteer_id OR auth.uid() = creator_id
+);
+
+-- Drop existing policies if they exist (for re-runnable migrations)
+DROP POLICY IF EXISTS "Users can view all tasks" ON tasks;
+DROP POLICY IF EXISTS "Organizers can create tasks" ON tasks;
+DROP POLICY IF EXISTS "Organizers can update own tasks" ON tasks;
 
 -- Tasks policies
 CREATE POLICY "Users can view all tasks" ON tasks FOR SELECT USING (true);

@@ -27,6 +27,11 @@ CREATE INDEX IF NOT EXISTS idx_tasks_urgent ON tasks(status, start_time) WHERE s
 -- RLS policies
 ALTER TABLE volunteer_invitations ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (for re-runnable migrations)
+DROP POLICY IF EXISTS "Volunteers can view own invitations" ON volunteer_invitations;
+DROP POLICY IF EXISTS "Volunteers can update own invitations" ON volunteer_invitations;
+DROP POLICY IF EXISTS "System can create invitations" ON volunteer_invitations;
+
 -- Volunteers can view their own invitations
 CREATE POLICY "Volunteers can view own invitations" ON volunteer_invitations 
 FOR SELECT USING (auth.uid() = volunteer_id);

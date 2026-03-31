@@ -23,8 +23,8 @@ serve(async (req) => {
       );
     }
 
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY is not configured");
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiApiKey) throw new Error("OPENAI_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -33,11 +33,11 @@ serve(async (req) => {
     if (mode === "tasks-for-volunteer") {
       // Find tasks recommended for a volunteer
       const { volunteerId } = await req.json().catch(() => ({ volunteerId: null }));
-      return await matchTasksForVolunteer(supabase, lovableApiKey, taskId || volunteerId);
+      return await matchTasksForVolunteer(supabase, openaiApiKey, taskId || volunteerId);
     }
 
     // Default: find volunteers for a task
-    return await matchVolunteersForTask(supabase, lovableApiKey, taskId);
+    return await matchVolunteersForTask(supabase, openaiApiKey, taskId);
 
   } catch (e) {
     console.error("semantic-match error:", e);
@@ -67,7 +67,7 @@ async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: str
   const { data: volunteers, error: volError } = await supabase
     .from("profiles")
     .select("id, name, skills, bio")
-    .eq("role", "volunteer");
+    .eq("user_role", "volunteer");
 
   if (volError || !volunteers || volunteers.length === 0) {
     return new Response(
@@ -81,14 +81,14 @@ async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: str
     `[${i}] ${v.name} | Skills: ${v.skills.join(", ")} | Bio: ${v.bio}`
   ).join("\n");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -211,14 +211,14 @@ async function matchTasksForVolunteer(supabase: any, apiKey: string, volunteerId
     `[${i}] "${t.title}" | Skills: ${t.skills.join(", ")} | ${t.description}`
   ).join("\n");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
