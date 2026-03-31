@@ -24,6 +24,7 @@ export default function VolunteerDashboard() {
   const [tasks, setTasks] = useState<RecommendedTask[]>([]);
   const [invitations, setInvitations] = useState<VolunteerInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [volunteerId, setVolunteerId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<RecommendedTask | null>(null);
   const [selectedInvitation, setSelectedInvitation] = useState<VolunteerInvitation | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
