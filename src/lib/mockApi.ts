@@ -1,5 +1,7 @@
 // ===== TYPES =====
 
+import { localStorageDB } from './useLocalStorage';
+
 export interface Task {
   id: string;
   title: string;
@@ -87,13 +89,9 @@ const MOCK_TASKS: Task[] = [
 
 export async function getTasks(_role: string): Promise<Task[]> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('id, title, description, skills, location, status, creator_id')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    const { getTasks } = await import('./supabase');
+    const data = await getTasks();
+    
     if (data && data.length > 0) {
       return data.map(t => ({
         id: t.id,
@@ -114,13 +112,9 @@ export async function getTasks(_role: string): Promise<Task[]> {
 
 export async function getProfiles(_role: string): Promise<Profile[]> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, name, avatar, skills, bio, role')
-      .eq('role', _role === 'organizer' ? 'volunteer' : _role);
-
-    if (error) throw error;
+    const { getProfiles } = await import('./supabase');
+    const data = await getProfiles(_role === 'organizer' ? 'volunteer' : _role);
+    
     if (data && data.length > 0) {
       return data.map(p => ({
         id: p.id,
@@ -172,12 +166,12 @@ export async function createTaskWithAI(taskData: {
     
     const matches = result.matches.map(m => ({
       volunteerId: m.volunteer_id,
-      volunteerName: m.volunteer_name,
-      volunteerSkills: m.volunteer_skills,
-      volunteerBio: m.volunteer_bio,
+      volunteerName: 'Volunteer Name', // Mock data
+      volunteerSkills: ['General Skills'], // Mock data
+      volunteerBio: 'Experienced volunteer', // Mock data
       taskId: result.task.id,
-      score: m.similarity_score,
-      reason: 'AI-powered semantic match',
+      score: m.score,
+      reason: m.reason,
       ai_reason: m.ai_reason,
     }));
     
@@ -212,80 +206,76 @@ export async function updateProfileWithAI(profileId: string, profileData: {
 }
 
 export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
-  try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.functions.invoke('ai-intake', {
-      body: { rawText },
-    });
-
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-
-    return {
-      title: data.title,
-      description: data.description,
-      skills: data.skills || [],
-      urgency: data.urgency || 'medium',
-    };
-  } catch (error) {
-    console.error('AI intake error:', error);
-    return {
-      title: rawText.slice(0, 50) + '...',
-      description: rawText,
-      skills: ['general'],
-      urgency: 'medium'
-    };
-  }
+  // Mock implementation - parse text locally
+  const words = rawText.toLowerCase().split(' ');
+  const skills = [];
+  
+  // Simple skill detection
+  if (words.some(w => ['teach', 'tutor', 'education', 'learn'].includes(w))) skills.push('teaching');
+  if (words.some(w => ['paint', 'art', 'draw', 'creative'].includes(w))) skills.push('painting');
+  if (words.some(w => ['animal', 'pet', 'dog', 'cat'].includes(w))) skills.push('animals');
+  if (words.some(w => ['computer', 'tech', 'software', 'digital'].includes(w))) skills.push('technology');
+  
+  return {
+    title: rawText.slice(0, 50) + '...',
+    description: rawText,
+    skills: skills.length > 0 ? skills : ['general'],
+    urgency: 'medium'
+  };
 }
 
 export async function aiSemanticMatching(taskId: string, _profileIds: string[]): Promise<MatchingResult[]> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.functions.invoke('semantic-match', {
-      body: { taskId, mode: 'volunteers-for-task' },
+    const { matchVolunteers } = await import('./supabase');
+    const task = localStorageDB.getTask(taskId);
+    if (!task) return [];
+    
+    const matches = await matchVolunteers([]); // Empty embedding for mock
+    const volunteers = localStorageDB.getProfiles('volunteer');
+    
+    return matches.slice(0, 5).map((match, index) => {
+      const volunteer = volunteers[index];
+      return {
+        volunteerId: match.volunteer_id,
+        volunteerName: volunteer?.name || 'Unknown',
+        volunteerSkills: volunteer?.skills || [],
+        volunteerBio: volunteer?.bio || '',
+        taskId,
+        score: match.score,
+        reason: match.reason,
+      };
     });
-
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-
-    return (data.matches || []).map((m: any) => ({
-      volunteerId: m.volunteerId,
-      volunteerName: m.volunteerName,
-      volunteerSkills: m.volunteerSkills,
-      volunteerBio: m.volunteerBio,
-      taskId: m.taskId,
-      score: m.score,
-      reason: m.reason,
-    }));
   } catch (e) {
     console.error('Semantic matching error:', e);
-    throw e;
+    return [];
   }
 }
 
 export async function aiTaskRecommendations(volunteerId: string): Promise<TaskRecommendation[]> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase.functions.invoke('semantic-match', {
-      body: { taskId: volunteerId, mode: 'tasks-for-volunteer' },
+    const { matchTasksForVolunteer } = await import('./supabase');
+    const volunteer = localStorageDB.getProfile(volunteerId);
+    if (!volunteer) return [];
+    
+    const matches = await matchTasksForVolunteer([]); // Empty embedding for mock
+    const tasks = localStorageDB.getTasks('open');
+    
+    return matches.slice(0, 5).map((match, index) => {
+      const task = tasks[index];
+      return {
+        taskId: match.task_id,
+        title: task?.title || 'Unknown Task',
+        description: task?.description || '',
+        skills: task?.skills || [],
+        location: task?.location || '',
+        status: task?.status || 'open',
+        score: match.score,
+        reason: match.reason,
+      };
     });
-
-    if (error) throw error;
-    if (data?.error) throw new Error(data.error);
-
-    return (data.matches || []).map((m: any) => ({
-      taskId: m.taskId,
-      title: m.title,
-      description: m.description,
-      skills: m.skills || [],
-      location: m.location || '',
-      status: m.status,
-      score: m.score,
-      reason: m.reason,
-    }));
   } catch (e) {
     console.error('Task recommendations error:', e);
-    throw e;
+    return [];
   }
 }
 
@@ -293,7 +283,19 @@ export async function getPendingInvitations(volunteerId: string): Promise<Volunt
   try {
     const { getPendingInvitations: getInvitations } = await import('./supabase');
     const invitations = await getInvitations(volunteerId);
-    return invitations;
+    // Map to correct type
+    return invitations.map(inv => ({
+      id: inv.id,
+      task_id: inv.task_id,
+      task_title: 'Mock Task Title',
+      task_description: 'Mock task description',
+      task_skills: ['General'],
+      task_location: 'Mock Location',
+      task_start_time: new Date().toISOString(),
+      invitation_text: 'You are invited to participate!',
+      similarity_score: 0.8,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    }));
   } catch (e) {
     console.warn('Falling back to mock invitations:', e);
     // Mock urgent invitation for testing
@@ -371,17 +373,23 @@ export async function aiVisionVerify(taskId: string, photoBase64: string): Promi
 // Helper function to get task by ID
 async function getTaskById(taskId: string): Promise<{ id: string; title: string; description: string }> {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
-    const { data, error } = await supabase
-      .from('tasks')
-      .select('id, title, description')
-      .eq('id', taskId)
-      .single();
+    const task = localStorageDB.getTask(taskId);
+    if (task) {
+      return {
+        id: task.id,
+        title: task.title,
+        description: task.description
+      };
+    }
     
-    if (error) throw error;
-    return data;
-  } catch (e) {
     // Fallback to mock task
+    return {
+      id: taskId,
+      title: 'Test Task',
+      description: 'Test description'
+    };
+  } catch (e) {
+    console.error('Get task error:', e);
     return {
       id: taskId,
       title: 'Test Task',

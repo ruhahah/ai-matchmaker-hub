@@ -123,10 +123,6 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
   return localStorageDB.getProfile(userId);
 };
 
-export const getProfiles = async (role?: string): Promise<Profile[]> => {
-  return localStorageDB.getProfiles(role);
-};
-
 export const createProfile = async (profile: Partial<Profile>): Promise<Profile> => {
   return localStorageDB.createProfile(profile);
 };
