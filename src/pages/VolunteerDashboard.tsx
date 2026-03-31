@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, type TaskRecommendation, type VisionResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +26,8 @@ export default function VolunteerDashboard() {
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,12 +73,52 @@ export default function VolunteerDashboard() {
     setApplied(prev => new Set(prev).add(taskId));
   };
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: 'File too large',
+          description: 'Please select an image under 5MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        const base64Data = base64.split(',')[1]; // Remove data:image/...;base64, prefix
+        setSelectedPhoto(base64Data);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleVerify = async (taskId: string) => {
+    if (!selectedPhoto) {
+      toast({
+        title: 'No photo selected',
+        description: 'Please upload a photo of your completed work.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setVerifying(true);
     setVisionResult(null);
-    const result = await aiVisionVerify(taskId, 'fake-base64-photo-data');
-    setVisionResult(result);
-    setVerifying(false);
+    try {
+      const result = await aiVisionVerify(taskId, selectedPhoto);
+      setVisionResult(result);
+    } catch (err: any) {
+      toast({
+        title: 'Verification failed',
+        description: err.message || 'Failed to verify photo. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
 
   return (
@@ -99,7 +142,7 @@ export default function VolunteerDashboard() {
               key={task.id}
               className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30 animate-slide-up"
               style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}
-              onClick={() => { setSelectedTask(task); setVisionResult(null); }}
+              onClick={() => { setSelectedTask(task); setVisionResult(null); setSelectedPhoto(null); }}
             >
               <CardContent className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -122,7 +165,7 @@ export default function VolunteerDashboard() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  {task.skills.map(s => <Badge key={s} variant="outline" className="text-xs">{s}</Badge>)}
+                  {task.skills.map(s => <Badge key={s} variant={"outline" as const} className="text-xs">{s}</Badge>)}
                 </div>
               </CardContent>
             </Card>
@@ -141,7 +184,7 @@ export default function VolunteerDashboard() {
             <MapPin className="h-3 w-3" /> {selectedTask?.location}
           </div>
           <div className="flex flex-wrap gap-1.5 my-2">
-            {selectedTask?.skills.map(s => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+            {selectedTask?.skills.map(s => <Badge key={s} variant={"secondary" as const} className="text-xs">{s}</Badge>)}
           </div>
 
           <div className="flex items-start gap-2 rounded-lg bg-accent/60 p-3 my-2">
@@ -165,15 +208,41 @@ export default function VolunteerDashboard() {
               <div className="rounded-lg border p-4 space-y-3">
                 <h4 className="font-display text-sm font-semibold">Submit Proof of Completion</h4>
                 <p className="text-xs text-muted-foreground">Upload a photo showing your completed work for AI verification.</p>
-                <Button
-                  variant="outline"
-                  onClick={() => handleVerify(selectedTask.id)}
-                  disabled={verifying}
-                  className="w-full gap-2"
-                >
-                  {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                  {verifying ? 'AI is verifying...' : 'Simulate Photo Upload'}
-                </Button>
+                
+                <div className="space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={verifying}
+                    className="w-full gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {selectedPhoto ? 'Change Photo' : 'Upload Photo'}
+                  </Button>
+                  
+                  {selectedPhoto && (
+                    <div className="text-xs text-muted-foreground">
+                      ✓ Photo selected and ready for verification
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={() => selectedTask && handleVerify(selectedTask.id)}
+                    disabled={verifying || !selectedPhoto}
+                    className="w-full gap-2"
+                  >
+                    {verifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                    {verifying ? 'AI is verifying...' : 'Verify Photo with AI'}
+                  </Button>
+                </div>
 
                 {visionResult && (
                   <div className={`animate-slide-up rounded-lg p-3 ${visionResult.status === 'approved' ? 'bg-success/10' : 'bg-destructive/10'}`}>
@@ -184,7 +253,7 @@ export default function VolunteerDashboard() {
                       <span className={`text-sm font-semibold capitalize ${visionResult.status === 'approved' ? 'text-success' : 'text-destructive'}`}>
                         {visionResult.status}
                       </span>
-                      <Badge variant="outline" className="ml-auto text-xs">
+                      <Badge variant={"outline" as const} className="ml-auto text-xs">
                         {Math.round(visionResult.confidence * 100)}% confidence
                       </Badge>
                     </div>

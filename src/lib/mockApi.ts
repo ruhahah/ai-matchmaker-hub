@@ -195,14 +195,29 @@ export async function aiTaskRecommendations(volunteerId: string): Promise<TaskRe
   }
 }
 
-export async function aiVisionVerify(_taskId: string, _photoBase64: string): Promise<VisionResult> {
-  await delay(2200);
-  const approved = Math.random() > 0.25;
-  return {
-    status: approved ? 'approved' : 'rejected',
-    confidence: parseFloat((0.85 + Math.random() * 0.14).toFixed(2)),
-    reason: approved
-      ? 'Image shows completed work matching the task description. Quality assessment: satisfactory.'
-      : 'Unable to verify completion. The submitted image does not clearly show the expected deliverable.',
-  };
+export async function aiVisionVerify(taskId: string, photoBase64: string): Promise<VisionResult> {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('vision-verify', {
+      body: { taskId, photoBase64 },
+    });
+
+    if (error) {
+      console.error('Vision verification error:', error);
+      throw new Error(error.message || 'Vision verification failed');
+    }
+
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+
+    return {
+      status: data.status,
+      confidence: data.confidence,
+      reason: data.reason,
+    };
+  } catch (e) {
+    console.error('Vision verification error:', e);
+    throw e;
+  }
 }

@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,11 +88,11 @@ async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: str
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "openai/gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are an AI matching engine for a volunteering platform. Score how well each volunteer matches a task based on skills, experience, and bio relevance. Be generous but accurate - most volunteers should have scores between 0.5 and 0.99. Provide a brief, specific explanation referencing the volunteer's actual skills/bio.`,
+          content: `You are an AI matching engine for a volunteering platform. Score how well each volunteer matches a task based on skills, experience, and bio relevance. Be generous but accurate - most volunteers should have scores between 0.5 and 0.99. Provide a brief, specific explanation referencing the volunteer's actual skills/bio. Explain in one sentence in Russian why this volunteer is suitable for this task.`,
         },
         {
           role: "user",
@@ -115,7 +115,7 @@ async function matchVolunteersForTask(supabase: any, apiKey: string, taskId: str
                     properties: {
                       index: { type: "integer", description: "Volunteer index from the list" },
                       score: { type: "number", description: "Match score 0.0-1.0" },
-                      reason: { type: "string", description: "Brief explanation of why this volunteer matches (1-2 sentences)" },
+                      reason: { type: "string", description: "Brief explanation in Russian of why this volunteer matches (one sentence)" },
                     },
                     required: ["index", "score", "reason"],
                     additionalProperties: false,
@@ -218,11 +218,11 @@ async function matchTasksForVolunteer(supabase: any, apiKey: string, volunteerId
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "openai/gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are an AI recommendation engine for a volunteering platform. Score how relevant each task is for a specific volunteer based on their skills, experience, and bio. Provide a personalized explanation that references the volunteer's specific skills/experience. Use "you" to address the volunteer directly.`,
+          content: `You are an AI recommendation engine for a volunteering platform. Score how relevant each task is for a specific volunteer based on their skills, experience, and bio. Provide a personalized explanation that references the volunteer's specific skills/experience. Use "you" to address the volunteer directly. Explain in one sentence in Russian why this task is suitable for this volunteer.`,
         },
         {
           role: "user",
@@ -245,7 +245,7 @@ async function matchTasksForVolunteer(supabase: any, apiKey: string, volunteerId
                     properties: {
                       index: { type: "integer", description: "Task index from the list" },
                       score: { type: "number", description: "Relevance score 0.0-1.0" },
-                      reason: { type: "string", description: "Personalized explanation using 'you' (1-2 sentences)" },
+                      reason: { type: "string", description: "Personalized explanation in Russian using 'you' (one sentence)" },
                     },
                     required: ["index", "score", "reason"],
                     additionalProperties: false,

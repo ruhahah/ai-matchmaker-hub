@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true,
+    "moduleResolution": "node",
+    "typeRoots": ["./"],
+    "imports": {
+      "std/": "https://deno.land/std@0.208.0/"
+    }
+  },
+  "importMap": "import_map.json",
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env index.ts"
+  },
+  "fmt": {
+    "files": {
+      "include": ["src/", "deno-types.d.ts"]
+    }
+  }
+}
