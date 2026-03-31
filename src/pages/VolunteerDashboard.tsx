@@ -222,6 +222,9 @@ export default function VolunteerDashboard() {
 
   return (
     <div className="container max-w-3xl py-8 space-y-6">
+      {/* AI Impact Summary */}
+      {volunteerId && <AIImpactSummary volunteerId={volunteerId} />}
+
       <div>
         <h1 className="font-display text-2xl font-bold">Recommended for You</h1>
         <p className="text-muted-foreground text-sm mt-1">Tasks matched to your skills by AI</p>
