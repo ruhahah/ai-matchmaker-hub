@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import RoleSelect from "@/pages/RoleSelect";
 import OrganizerDashboard from "@/pages/OrganizerDashboard";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
+import VolunteerProfile from "@/pages/VolunteerProfile";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/organizer" element={role === 'organizer' ? <OrganizerDashboard /> : <Navigate to={`/${role}`} />} />
         <Route path="/volunteer" element={role === 'volunteer' ? <VolunteerDashboard /> : <Navigate to={`/${role}`} />} />
+        <Route path="/volunteer/profile" element={role === 'volunteer' ? <VolunteerProfile /> : <Navigate to={`/${role}`} />} />
         <Route path="/" element={<Navigate to={`/${role}`} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

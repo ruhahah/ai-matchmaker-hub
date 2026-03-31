@@ -16,11 +16,14 @@ interface Task {
   id: string;
   title: string;
   description: string;
-  location: string;
-  startTime: string;
-  requiredVolunteers: number;
-  skills: string[];
-  urgency: 'low' | 'medium' | 'high';
+  location?: string;
+  start_time?: string;
+  startTime?: string;
+  requiredVolunteers?: number;
+  skills?: string[];
+  urgency?: 'low' | 'medium' | 'high';
+  status?: string;
+  creator_id?: string;
 }
 
 interface TaskAssistantChatProps {
@@ -62,11 +65,11 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
       const taskContext = `
         Задача: ${task.title}
         Описание: ${task.description}
-        Место: ${task.location}
-        Необходимые навыки: ${task.skills.join(', ')}
-        Срочность: ${task.urgency}
-        Начало: ${task.startTime}
-        Требуется волонтеров: ${task.requiredVolunteers}
+        Место: ${task.location || 'Не указано'}
+        Необходимые навыки: ${(task.skills || []).join(', ')}
+        Срочность: ${task.urgency || 'medium'}
+        Начало: ${task.startTime || task.start_time || 'Не указано'}
+        Требуется волонтеров: ${task.requiredVolunteers || 'Не указано'}
       `.toLowerCase();
       
       const userQuestion = input.trim().toLowerCase();
@@ -74,15 +77,16 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
       
       // RAG поиск ответа в контексте задачи
       if (userQuestion.includes('что') || userQuestion.includes('задача') || userQuestion.includes('нужно')) {
-        response = `Основная задача: ${task.description}. Вам нужно помочь с ${task.skills.join(', ')} в ${task.location}.`;
+        response = `Основная задача: ${task.description}. Вам нужно помочь с ${(task.skills || []).join(', ')} в ${task.location || 'указанном месте'}.`;
       } else if (userQuestion.includes('где') || userQuestion.includes('место') || userQuestion.includes('локаци')) {
-        response = `Мероприятие пройдет в: ${task.location}.`;
+        response = `Мероприятие пройдет в: ${task.location || 'Место не указано в описании задачи.'}`;
       } else if (userQuestion.includes('время') || userQuestion.includes('когда') || userQuestion.includes('начало')) {
-        response = `Начало в: ${task.startTime}.`;
+        response = `Начало в: ${task.startTime || task.start_time || 'Время не указано в описании задачи.'}`;
       } else if (userQuestion.includes('навык') || userQuestion.includes('умение') || userQuestion.includes('что нужно')) {
-        response = `Потребуются следующие навыки: ${task.skills.join(', ')}.`;
+        response = `Потребуются следующие навыки: ${(task.skills || []).join(', ')}.`;
       } else if (userQuestion.includes('срочно') || userQuestion.includes('дедлайн')) {
-        response = `Срочность: ${task.urgency}. ${task.urgency === 'high' ? 'Очень срочно, нужно как можно скорее!' : 'Плановая задача.'}`;
+        const urgency = task.urgency || 'medium';
+        response = `Срочность: ${urgency}. ${urgency === 'high' ? 'Очень срочно, нужно как можно скорее!' : 'Плановая задача.'}`;
       } else if (userQuestion.includes('одежда') || userQuestion.includes('что взять') || userQuestion.includes('перчатки')) {
         if (taskContext.includes('уборка') || taskContext.includes('парк')) {
           response = 'Рекомендую взять рабочие перчатки, удобную одежду и воду. Организатор обычно предоставляет основные инструменты.';
@@ -90,7 +94,7 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
           response = 'Организатор это не указал в описании задачи. Рекомендую взять удобную одежду и воду.';
         }
       } else if (userQuestion.includes('сколько') || userQuestion.includes('волонтер')) {
-        response = `Требуется ${task.requiredVolunteers} волонтеров.`;
+        response = `Требуется ${task.requiredVolunteers || 'неопределенное количество'} волонтеров.`;
       } else {
         response = `Я могу ответить на вопросы о задаче "${task.title}". Спросите про место, время, навыки или что взять с собой. Организатор указал: ${task.description}`;
       }

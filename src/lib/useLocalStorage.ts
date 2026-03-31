@@ -214,6 +214,32 @@ export class LocalStorageDB {
       this.setTable('applications', []);
     }
   }
+
+  // Volunteer profile operations
+  saveVolunteerProfile(profile: any): void {
+    const profiles = this.getProfiles();
+    const existingIndex = profiles.findIndex(p => p.id === profile.id);
+    
+    const profileWithEmbedding = {
+      ...profile,
+      role: 'volunteer',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    if (existingIndex !== -1) {
+      profiles[existingIndex] = profileWithEmbedding;
+    } else {
+      profiles.push(profileWithEmbedding);
+    }
+    
+    this.setTable('profiles', profiles);
+  }
+
+  getVolunteerProfile(volunteerId: string): any | null {
+    const profiles = this.getProfiles();
+    return profiles.find(p => p.id === volunteerId && p.role === 'volunteer') || null;
+  }
 }
 
 export const localStorageDB = LocalStorageDB.getInstance();

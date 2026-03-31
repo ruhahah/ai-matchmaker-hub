@@ -27,7 +27,11 @@ interface AiResponse {
   content: string | TaskData;
 }
 
-export default function AiTaskCreator() {
+interface AiTaskCreatorProps {
+  onTaskCreated?: () => void;
+}
+
+export default function AiTaskCreator({ onTaskCreated }: AiTaskCreatorProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +117,9 @@ export default function AiTaskCreator() {
         description: taskData.description,
         location: taskData.location,
         skills: taskData.skills,
-        status: 'open'
+        status: 'open',
+        startTime: new Date().toISOString(),
+        created_at: new Date().toISOString()
       });
 
       // Mock AI matching call
@@ -132,6 +138,11 @@ export default function AiTaskCreator() {
       };
       
       setMessages([successMessage]);
+
+      // Notify parent component
+      if (onTaskCreated) {
+        onTaskCreated();
+      }
 
     } catch (error) {
       console.error('Error publishing task:', error);

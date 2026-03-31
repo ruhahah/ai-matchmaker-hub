@@ -8,6 +8,8 @@ import { Loader2, Sparkles, MapPin, Users, CheckCircle2, Clock, Eye, Bot } from 
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import AiTaskCreator from '@/components/AiTaskCreator';
+import AISquadSuggestions from '@/components/AISquadSuggestions';
+import AdvancedAnalytics from '@/components/AdvancedAnalytics';
 
 export default function OrganizerDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -16,6 +18,7 @@ export default function OrganizerDashboard() {
   const [matches, setMatches] = useState<(MatchingResult & { profile?: Profile })[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeTab, setActiveTab] = useState('create');
 
   useEffect(() => {
     Promise.all([getTasks('organizer'), getProfiles('volunteer')]).then(([t, p]) => {
@@ -26,6 +29,15 @@ export default function OrganizerDashboard() {
   }, []);
 
   const { toast } = useToast();
+
+  const handleTaskCreated = () => {
+    // Refresh tasks list
+    getTasks('organizer').then((t) => {
+      setTasks(t);
+      // Switch to tasks tab to show the new task
+      setActiveTab('tasks');
+    });
+  };
 
   const handleViewMatches = async (task: Task) => {
     setSelectedTask(task);
@@ -144,24 +156,36 @@ export default function OrganizerDashboard() {
           </p>
         </div>
 
-        <Tabs defaultValue="create" className="space-y-6">
+        <Tabs value={activeTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="create" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="create" 
+              className="flex items-center gap-2"
+              onClick={() => setActiveTab('create')}
+            >
               <Bot className="w-4 h-4" />
               Создать задачу
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="tasks" 
+              className="flex items-center gap-2"
+              onClick={() => setActiveTab('tasks')}
+            >
               <Sparkles className="w-4 h-4" />
               Активные задачи ({tasks.length})
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger 
+              value="analytics" 
+              className="flex items-center gap-2"
+              onClick={() => setActiveTab('analytics')}
+            >
               <Eye className="w-4 h-4" />
               Аналитика
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="create">
-            <AiTaskCreator />
+            <AiTaskCreator onTaskCreated={handleTaskCreated} />
           </TabsContent>
 
           <TabsContent value="tasks">
@@ -233,6 +257,17 @@ export default function OrganizerDashboard() {
                         </div>
                       </div>
                     </CardHeader>
+                    <CardContent>
+                      <AISquadSuggestions 
+                        task={task}
+                        onInvite={(volunteerId) => {
+                          toast({
+                            title: '✅ Приглашение отправлено!',
+                            description: 'Волонтер добавлен в команду',
+                          });
+                        }}
+                      />
+                    </CardContent>
                   </Card>
                 ))
               )}
@@ -240,65 +275,7 @@ export default function OrganizerDashboard() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">📊 Всего задач</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">{tasks.length}</div>
-                  <p className="text-sm text-gray-600 mt-1">Активных проектов</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">👥 Волонтеры</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">{profiles.length}</div>
-                  <p className="text-sm text-gray-600 mt-1">В базе данных</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🤖 AI-мэтчинг</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-purple-600">100%</div>
-                  <p className="text-sm text-gray-600 mt-1">Автоматизация</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">📈 Статистика по задачам</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {tasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <div className="font-medium">{task.title}</div>
-                        <div className="text-sm text-gray-600">
-                          {task.applications?.length || 0} откликов
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-sm font-medium ${getStatusColor(task.status)}`}>
-                          {getStatusLabel(task.status)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(task.startTime).toLocaleDateString('ru-RU')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <AdvancedAnalytics />
           </TabsContent>
         </Tabs>
 

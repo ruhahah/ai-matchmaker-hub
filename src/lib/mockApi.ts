@@ -14,6 +14,7 @@ export interface Task {
   requiredVolunteers?: number;
   startTime?: string;
   applications?: any[];
+  created_at?: string;
 }
 
 export interface Profile {

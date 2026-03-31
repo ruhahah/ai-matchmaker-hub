@@ -20,6 +20,7 @@ export interface Task {
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   creator_id: string;
   created_at: string;
+  startTime?: string;
 }
 
 export interface Application {

@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import AIImpactSummary from '@/components/AIImpactSummary';
+import ImpactCertificate from '@/components/ImpactCertificate';
 import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
 import DiscoveryFeed from '@/components/DiscoveryFeed';
-import { getDemoProfile, type DemoVolunteerProfile } from '@/lib/demoProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface RecommendedTask {
@@ -28,6 +29,7 @@ interface RecommendedTask {
 }
 
 export default function VolunteerDashboard() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<RecommendedTask[]>([]);
   const [invitations, setInvitations] = useState<VolunteerInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,6 @@ export default function VolunteerDashboard() {
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [respondingToInvitation, setRespondingToInvitation] = useState(false);
-  const [demoProfile, setDemoProfile] = useState<DemoVolunteerProfile | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -234,9 +235,19 @@ export default function VolunteerDashboard() {
       {/* AI Impact Summary */}
       {volunteerId && <AIImpactSummary volunteerId={volunteerId} />}
 
-      <div>
-        <h1 className="font-display text-2xl font-bold">Recommended for You</h1>
-        <p className="text-muted-foreground text-sm mt-1">Tasks matched to your skills by AI</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Recommended for You</h1>
+          <p className="text-muted-foreground text-sm mt-1">Tasks matched to your skills by AI</p>
+        </div>
+        <Button 
+          onClick={() => navigate('/volunteer/profile')}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <User className="w-4 h-4" />
+          Мой профиль
+        </Button>
       </div>
 
       {loading ? (
@@ -509,10 +520,23 @@ export default function VolunteerDashboard() {
               </div>
             </div>
           ) : selectedTask?.status === 'completed' ? (
-            <div className="text-center py-4">
-              <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-2" />
-              <h4 className="font-semibold text-success">Task Completed!</h4>
-              <p className="text-sm text-muted-foreground">Great work! Your completion has been verified by AI.</p>
+            <div className="space-y-4">
+              <div className="text-center py-4">
+                <CheckCircle2 className="h-12 w-12 text-success mx-auto mb-2" />
+                <h4 className="font-semibold text-success">Task Completed!</h4>
+                <p className="text-sm text-muted-foreground">Great work! Your completion has been verified by AI.</p>
+              </div>
+              
+              {/* AI Certificate */}
+              <ImpactCertificate 
+                task={selectedTask} 
+                volunteer={{
+                  id: 'mock-volunteer-1',
+                  name: 'Алексей Волонтер',
+                  skills: ['Перевод', 'Обучение', 'IT поддержка'],
+                  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex'
+                }}
+              />
             </div>
           ) : null}
         </DialogContent>
