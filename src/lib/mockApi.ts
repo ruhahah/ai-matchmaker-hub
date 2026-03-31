@@ -8,6 +8,10 @@ export interface Task {
   location: string;
   status: 'open' | 'verifying' | 'completed';
   creatorId: string;
+  urgency?: 'low' | 'medium' | 'high';
+  requiredVolunteers?: number;
+  startTime?: string;
+  applications?: any[];
 }
 
 export interface Profile {
