@@ -11,6 +11,7 @@ import AIImpactSummary from '@/components/AIImpactSummary';
 import ImpactCertificate from '@/components/ImpactCertificate';
 import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
+import TaskChatModal from '@/components/TaskChatModal';
 import DiscoveryFeed from '@/components/DiscoveryFeed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -36,13 +37,14 @@ export default function VolunteerDashboard() {
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<RecommendedTask | null>(null);
   const [selectedInvitation, setSelectedInvitation] = useState<VolunteerInvitation | null>(null);
+  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [chatTask, setChatTask] = useState<RecommendedTask | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [respondingToInvitation, setRespondingToInvitation] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -231,16 +233,14 @@ export default function VolunteerDashboard() {
     }
   };
 
-  const toggleTaskChat = (taskId: string) => {
-    setExpandedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-      }
-      return newSet;
-    });
+  const openChatModal = (task: RecommendedTask) => {
+    setChatTask(task);
+    setChatModalOpen(true);
+  };
+
+  const closeChatModal = () => {
+    setChatModalOpen(false);
+    setChatTask(null);
   };
 
   return (
@@ -318,27 +318,12 @@ export default function VolunteerDashboard() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => toggleTaskChat(task.id)}
+                    onClick={() => openChatModal(task)}
                     className="w-full flex items-center gap-2"
                   >
                     <Bot className="w-4 h-4" />
-                    {expandedTasks.has(task.id) ? 'Скрыть чат' : 'Спросить ИИ о задаче'}
+                    Спросить ИИ о задаче
                   </Button>
-                  
-                  {expandedTasks.has(task.id) && (
-                    <div className="mt-3">
-                      <TaskAssistantChat task={{
-                        id: task.id,
-                        title: task.title,
-                        description: task.description,
-                        location: task.location,
-                        startTime: task.startTime || new Date().toISOString(),
-                        requiredVolunteers: task.requiredVolunteers || 1,
-                        skills: task.skills,
-                        urgency: task.urgency || 'medium'
-                      }} />
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -460,22 +445,6 @@ export default function VolunteerDashboard() {
             <p className="text-xs text-accent-foreground">{selectedTask?.reason}</p>
           </div>
 
-          {/* Task Assistant Chat in Modal */}
-          {selectedTask && (
-            <div className="mt-4">
-              <TaskAssistantChat task={{
-                id: selectedTask.id,
-                title: selectedTask.title,
-                description: selectedTask.description,
-                location: selectedTask.location,
-                startTime: selectedTask.startTime || new Date().toISOString(),
-                requiredVolunteers: selectedTask.requiredVolunteers || 1,
-                skills: selectedTask.skills,
-                urgency: selectedTask.urgency || 'medium'
-              }} />
-            </div>
-          )}
-
           {selectedTask && !applied.has(selectedTask.id) && selectedTask.status !== 'completed' ? (
             <Button onClick={() => handleApply(selectedTask.id)} className="w-full gap-2">
               <Send className="h-4 w-4" />
@@ -568,6 +537,13 @@ export default function VolunteerDashboard() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* Task Chat Modal */}
+      <TaskChatModal 
+        isOpen={chatModalOpen}
+        onClose={closeChatModal}
+        task={chatTask}
+      />
     </div>
   );
 }
