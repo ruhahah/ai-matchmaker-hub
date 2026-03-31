@@ -36,6 +36,8 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [taskData, setTaskData] = useState<TaskData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTaskData, setEditedTaskData] = useState<TaskData | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +48,34 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const startEditing = () => {
+    if (taskData) {
+      setEditedTaskData({ ...taskData });
+      setIsEditing(true);
+    }
+  };
+
+  const saveEditedTask = () => {
+    if (editedTaskData) {
+      setTaskData(editedTaskData);
+      setIsEditing(false);
+      
+      // Add message about editing
+      const editMessage: Message = {
+        role: 'assistant',
+        content: `✅ Задача "${editedTaskData.title}" обновлена!`,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, editMessage]);
+    }
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedTaskData(null);
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -103,7 +133,8 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
   };
 
   const publishTask = async () => {
-    if (!taskData || isPublishing) return;
+    const currentTaskData = isEditing ? editedTaskData : taskData;
+    if (!currentTaskData || isPublishing) return;
 
     setIsPublishing(true);
 
@@ -113,10 +144,10 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
 
       const newTask = await createTask({
         creator_id: mockUserId,
-        title: taskData.title,
-        description: taskData.description,
-        location: taskData.location,
-        skills: taskData.skills,
+        title: currentTaskData.title,
+        description: currentTaskData.description,
+        location: currentTaskData.location,
+        skills: currentTaskData.skills,
         status: 'open',
         startTime: new Date().toISOString(),
         created_at: new Date().toISOString()
@@ -128,12 +159,14 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
       // Reset component
       setMessages([]);
       setTaskData(null);
+      setEditedTaskData(null);
+      setIsEditing(false);
       setInput('');
 
       // Show success message
       const successMessage: Message = {
         role: 'assistant',
-        content: `✅ Задача "${taskData.title}" успешно опубликована! Волонтеры уже получают уведомления.`,
+        content: `✅ Задача "${currentTaskData.title}" успешно опубликована! Волонтеры уже получают уведомления.`,
         timestamp: new Date()
       };
       
@@ -162,6 +195,8 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
   const resetConversation = () => {
     setMessages([]);
     setTaskData(null);
+    setEditedTaskData(null);
+    setIsEditing(false);
     setInput('');
   };
 
@@ -246,7 +281,7 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
             ))}
 
             {/* Task Preview */}
-            {taskData && (
+            {taskData && !isEditing && (
               <Card className="border-2 border-green-200 bg-green-50">
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-2">
@@ -303,10 +338,106 @@ export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps)
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={resetConversation}
+                      onClick={startEditing}
                       disabled={isPublishing}
                     >
                       Изменить
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Edit Mode */}
+            {taskData && isEditing && editedTaskData && (
+              <Card className="border-2 border-blue-200 bg-blue-50">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-blue-600" />
+                    <CardTitle className="text-lg text-blue-900">
+                      Редактирование задачи
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Название задачи</label>
+                    <Input
+                      value={editedTaskData.title}
+                      onChange={(e) => setEditedTaskData(prev => prev ? {...prev, title: e.target.value} : null)}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                    <textarea
+                      value={editedTaskData.description}
+                      onChange={(e) => setEditedTaskData(prev => prev ? {...prev, description: e.target.value} : null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Локация</label>
+                      <Input
+                        value={editedTaskData.location}
+                        onChange={(e) => setEditedTaskData(prev => prev ? {...prev, location: e.target.value} : null)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Дата</label>
+                      <Input
+                        type="date"
+                        value={editedTaskData.date}
+                        onChange={(e) => setEditedTaskData(prev => prev ? {...prev, date: e.target.value} : null)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Волонтеры</label>
+                      <Input
+                        type="number"
+                        value={editedTaskData.required_volunteers}
+                        onChange={(e) => setEditedTaskData(prev => prev ? {...prev, required_volunteers: parseInt(e.target.value) || 1} : null)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Срочность</label>
+                      <select
+                        value={editedTaskData.urgency}
+                        onChange={(e) => setEditedTaskData(prev => prev ? {...prev, urgency: e.target.value as 'low' | 'medium' | 'high'} : null)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="low">Низкая</option>
+                        <option value="medium">Средняя</option>
+                        <option value="high">Высокая</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Навыки (через запятую)</label>
+                    <Input
+                      value={editedTaskData.skills.join(', ')}
+                      onChange={(e) => setEditedTaskData(prev => prev ? {...prev, skills: e.target.value.split(',').map(s => s.trim()).filter(s => s)} : null)}
+                      placeholder="Например: Экология, Работа на свежем воздухе, Уборка"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      onClick={saveEditedTask}
+                      className="flex-1"
+                    >
+                      Сохранить изменения
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={cancelEditing}
+                    >
+                      Отмена
                     </Button>
                   </div>
                 </CardContent>

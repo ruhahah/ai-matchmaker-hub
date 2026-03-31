@@ -10,24 +10,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Plus, Eye, Edit, Users, Sparkles, UserPlus, CheckCircle, MapPin, Star, Clock, Target, TrendingUp, Bot, MessageCircle } from 'lucide-react';
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
+import { demoDatabase, type DemoProfile } from '@/lib/demoDatabaseFixed';
 import { useToast } from '@/hooks/use-toast';
 import AiTaskCreator from '@/components/AiTaskCreator';
 import AdvancedAnalytics from '@/components/AdvancedAnalytics';
+
+interface EnhancedMatch extends MatchingResult {
+  profile: DemoProfile;
+  enhancedScore: number;
+  originalScore: number;
+  matchingSkills: string[];
+  bonusReasons: string[];
+}
 
 export default function OrganizerDashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [matches, setMatches] = useState<(MatchingResult & { profile?: Profile })[]>([]);
+  const [matches, setMatches] = useState<EnhancedMatch[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profiles, setProfiles] = useState<DemoProfile[]>([]);
   const [activeTab, setActiveTab] = useState('create');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
-    Promise.all([getTasks('organizer'), getProfiles('volunteer')]).then(([t, p]) => {
+    // Используем demoDatabase для получения пользователей
+    const allUsers = demoDatabase.getUsers();
+    const volunteerUsers = allUsers.filter(user => user.role === 'volunteer');
+    
+    Promise.all([getTasks('organizer')]).then(([t]) => {
       setTasks(t);
-      setProfiles(p);
+      setProfiles(volunteerUsers);
       setLoading(false);
     });
   }, []);
@@ -68,10 +81,52 @@ export default function OrganizerDashboard() {
       const matchesWithProfiles = matches
         .sort((a, b) => b.score - a.score) // Сортировка по убыванию
         .slice(0, 10) // Берем топ-10
-        .map(match => ({
-          ...match,
-          profile: profiles.find(p => p.id === match.volunteerId)
-        }));
+        .map(match => {
+          const profile = profiles.find(p => p.id === match.volunteerId);
+          if (!profile) {
+            // Создаем минимальный профиль для несуществующих пользователей
+            const fallbackProfile: DemoProfile = {
+              id: match.volunteerId,
+              name: 'Неизвестный волонтер',
+              email: '',
+              role: 'volunteer',
+              bio: 'Профиль не найден',
+              avatar: '',
+              location: '',
+              skills: [],
+              friends: [],
+              friendRequests: { sent: [], received: [] },
+              stats: { tasksCompleted: 0, hoursVolunteered: 0, rating: 0 },
+              invitations: []
+            };
+            
+            return {
+              ...match,
+              profile: fallbackProfile,
+              enhancedScore: match.score,
+              originalScore: match.score,
+              matchingSkills: [],
+              bonusReasons: []
+            };
+          }
+          
+          // Базовые совпавшие навыки (без дополнительной логики)
+          const matchingSkills = task.skills.filter(skill => 
+            profile.skills.some(profileSkill => 
+              profileSkill.toLowerCase().includes(skill.toLowerCase()) || 
+              skill.toLowerCase().includes(profileSkill.toLowerCase())
+            )
+          );
+          
+          return {
+            ...match,
+            profile,
+            enhancedScore: match.score,
+            originalScore: match.score,
+            matchingSkills,
+            bonusReasons: []
+          };
+        });
       
       setMatches(matchesWithProfiles);
     } catch (err: any) {
@@ -90,30 +145,117 @@ export default function OrganizerDashboard() {
     
     setMatchLoading(true);
     try {
-      // Обновляем список волонтеров и получаем новые мэтчи
+      // Получаем всех волонтеров
       const allProfiles = profiles.filter(p => p.role === 'volunteer');
       
+      // Получаем базовые мэтчи через AI
       const matches = await aiSemanticMatching(selectedTask.id, allProfiles.map(p => p.id));
       
-      // Сортируем по score (убывание) и добавляем профили
-      const matchesWithProfiles = matches
-        .sort((a, b) => b.score - a.score) // Сортировка по убыванию
-        .slice(0, 10) // Берем топ-10
-        .map(match => ({
+      // Улучшенная система подсчета очков совпадения
+      const enhancedMatches = matches.map(match => {
+        const profile = profiles.find(p => p.id === match.volunteerId);
+        if (!profile) {
+          // Создаем минимальный профиль для несуществующих пользователей
+          const fallbackProfile: DemoProfile = {
+            id: match.volunteerId,
+            name: 'Неизвестный волонтер',
+            email: '',
+            role: 'volunteer',
+            bio: 'Профиль не найден',
+            avatar: '',
+            location: '',
+            skills: [],
+            friends: [],
+            friendRequests: { sent: [], received: [] },
+            stats: { tasksCompleted: 0, hoursVolunteered: 0, rating: 0 },
+            invitations: []
+          };
+          
+          return {
+            ...match,
+            profile: fallbackProfile,
+            enhancedScore: match.score,
+            originalScore: match.score,
+            matchingSkills: [],
+            bonusReasons: []
+          };
+        }
+        
+        let enhancedScore = match.score;
+        let bonusReasons: string[] = [];
+        
+        // Бонус за совпадение навыков (каждый совпавший навык +0.1)
+        const matchingSkills = selectedTask.skills.filter(skill => 
+          profile.skills.some(profileSkill => 
+            profileSkill.toLowerCase().includes(skill.toLowerCase()) || 
+            skill.toLowerCase().includes(profileSkill.toLowerCase())
+          )
+        );
+        
+        if (matchingSkills.length > 0) {
+          enhancedScore += (matchingSkills.length * 0.1);
+          bonusReasons.push(`${matchingSkills.length} совпавших навыков`);
+        }
+        
+        // Бонус за локацию (если в том же городе +0.15)
+        if (profile.location === selectedTask.location || 
+            profile.location.includes(selectedTask.location.split(',')[0]) ||
+            selectedTask.location.includes(profile.location)) {
+          enhancedScore += 0.15;
+          bonusReasons.push('Локация совпадает');
+        }
+        
+        // Бонус за опыт (более 15 выполненных задач +0.1)
+        if (profile.stats.tasksCompleted > 15) {
+          enhancedScore += 0.1;
+          bonusReasons.push('Опытный волонтер');
+        }
+        
+        // Бонус за высокий рейтинг (4.8+ +0.1)
+        if (profile.stats.rating >= 4.8) {
+          enhancedScore += 0.1;
+          bonusReasons.push('Высокий рейтинг');
+        }
+        
+        // Бонус за доступность (если не занят в это время)
+        const taskHour = parseInt(selectedTask.startTime.split(':')[0]);
+        if (taskHour >= 9 && taskHour <= 18) {
+          enhancedScore += 0.05; // Предполагаем, что волонтеры доступны днем
+          bonusReasons.push('Удобное время');
+        }
+        
+        // Ограничиваем максимальный счет
+        enhancedScore = Math.min(enhancedScore, 1.0);
+        
+        return {
           ...match,
-          profile: profiles.find(p => p.id === match.volunteerId)
-        }));
+          enhancedScore,
+          profile,
+          matchingSkills,
+          bonusReasons,
+          originalScore: match.score
+        };
+      });
       
-      setMatches(matchesWithProfiles);
+      // Сортируем по улучшенному счету
+      const sortedMatches = enhancedMatches
+        .sort((a, b) => b.enhancedScore - a.enhancedScore)
+        .slice(0, 10); // Топ-10 лучших мэтчей
+      
+      setMatches(sortedMatches);
+      
+      // Показываем детальную информацию о лучших мэтчах
+      const topMatch = sortedMatches[0];
+      const improvement = topMatch ? ((topMatch.enhancedScore - topMatch.originalScore) * 100).toFixed(1) : '0';
       
       toast({
-        title: '✅ Мэтчи обновлены',
-        description: `Найдено ${matchesWithProfiles.length} релевантных волонтеров`,
+        title: '🎯 Найдены лучшие волонтеры!',
+        description: `Топ-${sortedMatches.length} кандидатов с улучшенным мэтчингом. Лучший кандидат: ${topMatch?.profile.name} (${Math.round(topMatch.enhancedScore * 100)}% совпадение, улучшение на ${improvement}%)`,
       });
     } catch (err: any) {
       toast({
-        title: 'Failed to refresh matches',
-        description: err.message || 'Could not refresh volunteer matches.',
+        title: 'Ошибка при поиске мэтчей',
+        description: err.message || 'Не удалось найти подходящих волонтеров',
         variant: 'destructive',
       });
     } finally {
@@ -408,26 +550,47 @@ export default function OrganizerDashboard() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold">{match.profile?.name || 'Волонтер'}</h4>
+                            <h4 className="font-semibold">{match.profile.name}</h4>
                             <Badge className={`${
                               index === 0 ? 'bg-green-100 text-green-800 border-green-200' : 
                               index === 1 ? 'bg-blue-100 text-blue-800 border-blue-200' : 
                               index === 2 ? 'bg-purple-100 text-purple-800 border-purple-200' :
                               'bg-gray-100 text-gray-800 border-gray-200'
                             }`}>
-                              {Math.round(match.score * 100)}% совпадение
+                              {Math.round(match.enhancedScore * 100)}% совпадение
                               {index === 0 && ' 🏆 Лучший мэтч'}
                               {index === 1 && ' 🥈 Второй мэтч'}
                               {index === 2 && ' 🥉 Третий мэтч'}
                             </Badge>
+                            
+                            {/* Показываем улучшение */}
+                            {match.enhancedScore > match.originalScore && (
+                              <Badge variant="outline" className="text-xs ml-2">
+                                +{Math.round((match.enhancedScore - match.originalScore) * 100)}% улучшение
+                              </Badge>
+                            )}
                           </div>
                           
-                          <p className="text-gray-600 text-sm mb-3">{match.profile?.bio || 'Опытный волонтер'}</p>
+                          <p className="text-gray-600 text-sm mb-3">{match.profile.bio}</p>
+                          
+                          {/* Совпавшие навыки */}
+                          {match.matchingSkills.length > 0 && (
+                            <div className="mb-3">
+                              <span className="text-xs text-green-600 font-medium">✓ Совпавшие навыки:</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {match.matchingSkills.map(skill => (
+                                  <Badge key={skill} variant="default" className="text-xs bg-green-100 text-green-800">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           {/* Навыки волонтера */}
-                          {match.profile?.skills && match.profile.skills.length > 0 && (
+                          {match.profile.skills.length > 0 && (
                             <div className="mb-3">
-                              <span className="text-xs text-gray-500">Навыки:</span>
+                              <span className="text-xs text-gray-500">Все навыки:</span>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {match.profile.skills.slice(0, 4).map(skill => (
                                   <Badge key={skill} variant="secondary" className="text-xs">
@@ -478,7 +641,7 @@ export default function OrganizerDashboard() {
                               onClick={() => {
                                 toast({
                                   title: '📧 Приглашение отправлено',
-                                  description: `${match.profile?.name} получит уведомление о задаче`,
+                                  description: `${match.profile.name} получит уведомление о задаче`,
                                 });
                               }}
                             >
