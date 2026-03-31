@@ -17,5 +17,10 @@
     "files": {
       "include": ["src/", "deno-types.d.ts"]
     }
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
   }
 }

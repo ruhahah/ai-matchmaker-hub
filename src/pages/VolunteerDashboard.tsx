@@ -4,11 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot } from 'lucide-react';
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import AIImpactSummary from '@/components/AIImpactSummary';
 import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
+import DiscoveryFeed from '@/components/DiscoveryFeed';
+import { getDemoProfile, type DemoVolunteerProfile } from '@/lib/demoProfile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface RecommendedTask {
   id: string;
@@ -36,6 +39,8 @@ export default function VolunteerDashboard() {
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [respondingToInvitation, setRespondingToInvitation] = useState(false);
+  const [demoProfile, setDemoProfile] = useState<DemoVolunteerProfile | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 

@@ -135,7 +135,16 @@ export async function getProfiles(_role: string): Promise<Profile[]> {
     console.warn('Falling back to mock profiles:', e);
   }
   await delay(300);
-  return [];
+  return [
+    {
+      id: 'mock-volunteer-1',
+      name: 'Mock Волонтер',
+      avatar: '',
+      skills: ['волонтерство', 'помощь'],
+      bio: 'Профиль для демонстрации',
+      role: 'volunteer' as const,
+    }
+  ];
 }
 
 export async function createTaskWithAI(taskData: {
