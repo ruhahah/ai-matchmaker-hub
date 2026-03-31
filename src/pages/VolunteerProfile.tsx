@@ -183,11 +183,6 @@ export default function VolunteerProfile() {
         description: 'Твой профиль теперь оптимизирован для поиска задач',
       });
       
-      // Автоматический редирект на дашборд через 2 секунды
-      setTimeout(() => {
-        navigate('/volunteer/dashboard');
-      }, 2000);
-      
     } catch (error) {
       toast({
         title: 'Ошибка сохранения',
@@ -447,24 +442,6 @@ export default function VolunteerProfile() {
           </Button>
         </div>
       </div>
-
-      {/* Redirect notification */}
-      <Dialog open={isSaving} onOpenChange={() => {}}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              Профиль успешно сохранен!
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-center py-4">
-            <p className="text-gray-600 mb-4">
-              Перенаправляем вас на дашборд с персонализированными задачами...
-            </p>
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

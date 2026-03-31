@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MessageCircle, Send, Bot, X, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Bot, Loader2 } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,7 +30,6 @@ interface TaskAssistantChatProps {
 }
 
 export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -181,54 +179,28 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="fixed bottom-4 right-4 z-50 shadow-lg bg-white hover:bg-gray-50"
-        >
-          <MessageCircle className="w-4 h-4 mr-2" />
-          Спросить AI о задаче
-          {messages.length > 0 && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              {messages.length}
+    <Card className="w-full h-[500px]">
+      <CardHeader className="pb-3 border-b">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Bot className="w-4 h-4 text-blue-600" />
+            AI-ассистент задачи
+          </CardTitle>
+        </div>
+        
+        {/* Task Context */}
+        <div className="mt-2 space-y-1">
+          <div className="font-medium text-xs">{task.title}</div>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="outline" className="text-xs">
+              {task.location}
             </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      
-      <PopoverContent className="w-96 h-[500px] p-0" align="end" side="top">
-        <Card className="h-full border-0 shadow-none">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Bot className="w-4 h-4 text-blue-600" />
-                AI-ассистент задачи
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsOpen(false)}
-                className="h-6 w-6 p-0"
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-            
-            {/* Task Context */}
-            <div className="mt-2 space-y-1">
-              <div className="font-medium text-xs">{task.title}</div>
-              <div className="flex flex-wrap gap-1">
-                <Badge variant="outline" className="text-xs">
-                  {task.location}
-                </Badge>
-                <Badge className={`text-xs ${getUrgencyColor(task.urgency)}`}>
-                  {getUrgencyLabel(task.urgency)}
-                </Badge>
-              </div>
-            </div>
-          </CardHeader>
+            <Badge className={`text-xs ${getUrgencyColor(task.urgency)}`}>
+              {getUrgencyLabel(task.urgency)}
+            </Badge>
+          </div>
+        </div>
+      </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-3">
             {/* Messages */}
@@ -325,7 +297,5 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
             </div>
           </CardContent>
         </Card>
-      </PopoverContent>
-    </Popover>
   );
 }
