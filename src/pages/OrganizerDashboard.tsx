@@ -3,8 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, MapPin, Users, CheckCircle2, Clock, Eye, Bot, TrendingUp } from 'lucide-react';
+import { Loader2, Plus, Eye, Edit, Users, Sparkles, UserPlus, CheckCircle, MapPin, Star, Clock, Target, TrendingUp, Bot } from 'lucide-react';
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import AiTaskCreator from '@/components/AiTaskCreator';
@@ -19,6 +23,7 @@ export default function OrganizerDashboard() {
   const [matchLoading, setMatchLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeTab, setActiveTab] = useState('create');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
     Promise.all([getTasks('organizer'), getProfiles('volunteer')]).then(([t, p]) => {
@@ -36,6 +41,18 @@ export default function OrganizerDashboard() {
       setTasks(t);
       // Switch to tasks tab to show the new task
       setActiveTab('tasks');
+    });
+  };
+
+  const handleTaskUpdated = (updatedTask: Task) => {
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? {...updatedTask, status: updatedTask.status as 'open' | 'in_progress' | 'completed'} : task
+    ));
+    setEditingTask(null);
+    
+    toast({
+      title: '✅ Задача обновлена',
+      description: 'Изменения сохранены успешно',
     });
   };
 
@@ -289,6 +306,14 @@ export default function OrganizerDashboard() {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setEditingTask(task)}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Изменить
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleViewMatches(task)}
                             disabled={matchLoading}
                           >
@@ -446,6 +471,114 @@ export default function OrganizerDashboard() {
             )}
           </DialogContent>
         </Dialog>
+
+      {/* Edit Task Modal */}
+      <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Редактировать задачу</DialogTitle>
+          </DialogHeader>
+          {editingTask && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-title">Название задачи</Label>
+                  <Input
+                    id="edit-title"
+                    value={editingTask.title}
+                    onChange={(e) => setEditingTask(prev => prev ? {...prev, title: e.target.value} : null)}
+                    placeholder="Введите название задачи"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-location">Локация</Label>
+                  <Input
+                    id="edit-location"
+                    value={editingTask.location || ''}
+                    onChange={(e) => setEditingTask(prev => prev ? {...prev, location: e.target.value} : null)}
+                    placeholder="Укажите место проведения"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Описание</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingTask.description}
+                  onChange={(e) => setEditingTask(prev => prev ? {...prev, description: e.target.value} : null)}
+                  placeholder="Подробное описание задачи"
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="edit-urgency">Срочность</Label>
+                  <Select 
+                    value={editingTask.urgency || 'medium'} 
+                    onValueChange={(value) => setEditingTask(prev => prev ? {...prev, urgency: value as 'low' | 'medium' | 'high'} : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Низкая</SelectItem>
+                      <SelectItem value="medium">Средняя</SelectItem>
+                      <SelectItem value="high">Высокая</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-volunteers">Требуется волонтеров</Label>
+                  <Input
+                    id="edit-volunteers"
+                    type="number"
+                    value={editingTask.requiredVolunteers || 1}
+                    onChange={(e) => setEditingTask(prev => prev ? {...prev, requiredVolunteers: parseInt(e.target.value) || 1} : null)}
+                    min="1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-status">Статус</Label>
+                  <Select 
+                    value={editingTask.status || 'open'} 
+                    onValueChange={(value: 'open' | 'in_progress' | 'completed') => setEditingTask(prev => prev ? {...prev, status: value} : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Открыта</SelectItem>
+                      <SelectItem value="in_progress">В процессе</SelectItem>
+                      <SelectItem value="completed">Завершена</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-skills">Необходимые навыки (через запятую)</Label>
+                <Input
+                  id="edit-skills"
+                  value={editingTask.skills?.join(', ') || ''}
+                  onChange={(e) => setEditingTask(prev => prev ? {...prev, skills: e.target.value.split(',').map(s => s.trim()).filter(s => s)} : null)}
+                  placeholder="Например: Экология, Организация, Работа с детьми"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setEditingTask(null)}>
+                  Отмена
+                </Button>
+                <Button onClick={() => handleTaskUpdated(editingTask)}>
+                  Сохранить изменения
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       </div>
     </div>
   );

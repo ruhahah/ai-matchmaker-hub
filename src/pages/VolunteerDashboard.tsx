@@ -12,6 +12,7 @@ import ImpactCertificate from '@/components/ImpactCertificate';
 import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
 import TaskChatModal from '@/components/TaskChatModal';
+import AISquadSuggestions from '@/components/AISquadSuggestions';
 import DiscoveryFeed from '@/components/DiscoveryFeed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -39,6 +40,7 @@ export default function VolunteerDashboard() {
   const [selectedInvitation, setSelectedInvitation] = useState<VolunteerInvitation | null>(null);
   const [chatModalOpen, setChatModalOpen] = useState(false);
   const [chatTask, setChatTask] = useState<RecommendedTask | null>(null);
+  const [squadTaskId, setSquadTaskId] = useState<string | null>(null);
   const [applied, setApplied] = useState<Set<string>>(new Set());
   const [verifying, setVerifying] = useState(false);
   const [visionResult, setVisionResult] = useState<VisionResult | null>(null);
@@ -314,7 +316,7 @@ export default function VolunteerDashboard() {
                 </div>
 
                 {/* Task Assistant Chat Button */}
-                <div className="pt-2 border-t">
+                <div className="pt-2 border-t space-y-2">
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -327,11 +329,37 @@ export default function VolunteerDashboard() {
                     <Bot className="w-4 h-4" />
                     Спросить ИИ о задаче
                   </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSquadTaskId(task.id);
+                    }}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Собрать команду
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* AI Squad Suggestions - для формирования команды */}
+      {squadTaskId && (
+        <AISquadSuggestions 
+          task={tasks.find(t => t.id === squadTaskId) || tasks[0]}
+          onInvite={(volunteerId) => {
+            toast({
+              title: '🤝 Приглашение отправлено!',
+              description: 'Волонтер получил приглашение в вашу команду',
+            });
+          }}
+        />
       )}
 
       {/* Urgent Invitations Section */}

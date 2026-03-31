@@ -8,7 +8,7 @@ export interface Task {
   description: string;
   skills: string[];
   location: string;
-  status: 'open' | 'verifying' | 'completed';
+  status: 'open' | 'in_progress' | 'completed';
   creatorId: string;
   urgency?: 'low' | 'medium' | 'high';
   requiredVolunteers?: number;
@@ -81,7 +81,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const MOCK_TASKS: Task[] = [
   { id: 't1', title: 'Paint community fence', description: 'The fence along Oak Street needs fresh paint. Supplies provided.', skills: ['painting', 'outdoors'], location: 'Oak Street Park', status: 'open', creatorId: 'org1' },
   { id: 't2', title: 'Dog shelter weekend helper', description: 'Help walk and feed dogs at the local shelter on Saturday mornings.', skills: ['animals', 'caregiving'], location: 'Sunshine Animal Shelter', status: 'open', creatorId: 'org1' },
-  { id: 't3', title: 'Tutoring for teens', description: 'Provide math and science tutoring for high-school students after school.', skills: ['teaching', 'math', 'science'], location: 'Downtown Library', status: 'verifying', creatorId: 'org1' },
+  { id: 't3', title: 'Tutoring for teens', description: 'Provide math and science tutoring for high-school students after school.', skills: ['teaching', 'math', 'science'], location: 'Downtown Library', status: 'in_progress', creatorId: 'org1' },
   { id: 't4', title: 'Community garden cleanup', description: 'Spring cleaning at the community garden. Weeding, planting, mulching.', skills: ['gardening', 'outdoors'], location: 'Elm Avenue Garden', status: 'open', creatorId: 'org1' },
   { id: 't5', title: 'Senior tech assistance', description: 'Help senior citizens at the community center learn to use smartphones and tablets.', skills: ['technology', 'patience', 'teaching'], location: 'Golden Years Center', status: 'completed', creatorId: 'org1' },
 ];
