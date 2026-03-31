@@ -1,13 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
+import { Loader2, Sparkles, Send, MapPin, Users, CheckCircle2, Clock, Eye, Mic, MicOff, AudioLines } from 'lucide-react';
 import { getTasks, getProfiles, aiIntakeText, aiSemanticMatching, createTaskWithAI, type Task, type Profile, type MatchingResult, type IntakeResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
+
+// Extend window for SpeechRecognition
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  onstart: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
 
 export default function OrganizerDashboard() {
   const [rawText, setRawText] = useState('');
@@ -20,6 +51,16 @@ export default function OrganizerDashboard() {
   const [matchLoading, setMatchLoading] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [published, setPublished] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+
+  // Voice state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [interimText, setInterimText] = useState('');
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const autoParseRef = useRef(false);
+
+  const { toast } = useToast();
 
   useEffect(() => {
     Promise.all([getTasks('organizer'), getProfiles('volunteer')]).then(([t, p]) => {
@@ -29,7 +70,115 @@ export default function OrganizerDashboard() {
     });
   }, []);
 
-  const { toast } = useToast();
+  // Auto-parse after voice input completes
+  const triggerAutoParse = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    setParsing(true);
+    setPublished(false);
+    try {
+      const result = await aiIntakeText(text);
+      setDraft(result);
+      toast({
+        title: '🎤 Голос → Задача',
+        description: 'AI успешно обработал голосовой ввод!',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'AI Processing Failed',
+        description: err.message || 'Could not parse the text. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setParsing(false);
+    }
+  }, [toast]);
+
+  const startRecording = useCallback(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      toast({
+        title: 'Не поддерживается',
+        description: 'Ваш браузер не поддерживает распознавание речи. Используйте Chrome или Edge.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'ru-RU';
+
+    let finalTranscript = '';
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setInterimText('');
+      autoParseRef.current = true;
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interim += transcript;
+        }
+      }
+
+      const combined = (finalTranscript + interim).trim();
+      setRawText(combined);
+      setInterimText(interim);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        toast({
+          title: 'Ошибка записи',
+          description: `Ошибка распознавания речи: ${event.error}`,
+          variant: 'destructive',
+        });
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      setInterimText('');
+
+      // Auto-trigger AI parse when recording ends
+      const text = finalTranscript.trim();
+      if (text && autoParseRef.current) {
+        autoParseRef.current = false;
+        setIsTranscribing(true);
+        setTimeout(() => {
+          setIsTranscribing(false);
+          triggerAutoParse(text);
+        }, 300);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [toast, triggerAutoParse]);
+
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  }, []);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
 
   const handleParse = async () => {
     if (!rawText.trim()) return;
@@ -49,8 +198,6 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const [publishing, setPublishing] = useState(false);
-
   const handlePublish = async () => {
     if (!draft) return;
     setPublishing(true);
@@ -63,13 +210,12 @@ export default function OrganizerDashboard() {
         urgency: draft.urgency,
         creatorId: 'org1',
       });
-      
+
       setTasks(prev => [result.task, ...prev]);
       setDraft(null);
       setRawText('');
       setPublished(true);
-      
-      // Show matches if found
+
       if (result.matches.length > 0) {
         setMatches(result.matches.map(r => ({
           ...r,
@@ -84,7 +230,7 @@ export default function OrganizerDashboard() {
         })));
         setSelectedTask(result.task);
       }
-      
+
       setTimeout(() => setPublished(false), 3000);
     } catch (err: any) {
       toast({
@@ -130,6 +276,8 @@ export default function OrganizerDashboard() {
     return <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />;
   };
 
+  const isVoiceProcessing = isRecording || isTranscribing || (parsing && autoParseRef.current);
+
   return (
     <div className="container max-w-4xl py-8 space-y-8">
       {/* AI Intake */}
@@ -141,16 +289,84 @@ export default function OrganizerDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Describe what you need in plain language, e.g. 'We need someone to paint the fence on Saturday'..."
-            value={rawText}
-            onChange={e => setRawText(e.target.value)}
-            className="min-h-[100px] resize-none"
-          />
-          <Button onClick={handleParse} disabled={parsing || !rawText.trim()} className="gap-2">
-            {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {parsing ? 'AI is parsing...' : 'Parse with AI'}
-          </Button>
+          {/* Voice recording indicator */}
+          {isRecording && (
+            <div className="animate-slide-up flex items-center gap-3 rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3">
+              <div className="relative flex items-center justify-center">
+                <AudioLines className="h-5 w-5 text-destructive animate-pulse" />
+                <div className="absolute inset-0 h-5 w-5 bg-destructive/20 rounded-full animate-ping" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-destructive">Запись...</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {interimText ? `«${interimText}»` : 'Говорите, AI слушает'}
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={stopRecording}
+                className="gap-1.5 shrink-0"
+              >
+                <MicOff className="h-3.5 w-3.5" />
+                Стоп
+              </Button>
+            </div>
+          )}
+
+          {isTranscribing && (
+            <div className="animate-slide-up flex items-center gap-3 rounded-lg bg-primary/10 border border-primary/20 px-4 py-3">
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              <p className="text-sm text-primary font-medium">Обрабатываю запись...</p>
+            </div>
+          )}
+
+          <div className="relative">
+            <Textarea
+              placeholder="Опишите задачу голосом 🎤 или текстом, например: 'Нам нужен кто-то покрасить забор в субботу'..."
+              value={rawText}
+              onChange={e => setRawText(e.target.value)}
+              className="min-h-[100px] resize-none pr-14"
+            />
+            {/* Floating mic button */}
+            <Button
+              variant={isRecording ? "destructive" : "outline"}
+              size="icon"
+              onClick={toggleRecording}
+              disabled={parsing || isTranscribing}
+              className={`absolute right-2 bottom-2 h-10 w-10 rounded-full shadow-md transition-all ${
+                isRecording
+                  ? 'animate-pulse bg-destructive hover:bg-destructive/90'
+                  : 'hover:bg-primary hover:text-primary-foreground hover:border-primary'
+              }`}
+              title={isRecording ? 'Остановить запись' : 'Начать голосовой ввод'}
+            >
+              {isRecording ? (
+                <MicOff className="h-4.5 w-4.5" />
+              ) : (
+                <Mic className="h-4.5 w-4.5" />
+              )}
+            </Button>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleParse} disabled={parsing || !rawText.trim() || isRecording} className="gap-2">
+              {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {parsing ? 'AI is parsing...' : 'Parse with AI'}
+            </Button>
+
+            {!isRecording && (
+              <Button
+                variant="outline"
+                onClick={startRecording}
+                disabled={parsing || isTranscribing}
+                className="gap-2"
+              >
+                <Mic className="h-4 w-4" />
+                Голосовой ввод
+              </Button>
+            )}
+          </div>
 
           {draft && (
             <div className="animate-slide-up space-y-4 rounded-lg border bg-accent/30 p-4">
@@ -277,7 +493,7 @@ export default function OrganizerDashboard() {
                         {Math.round(m.score * 100)}% match
                       </Badge>
                     </div>
-                    <div className="flex items-start gap-2 rounded-md bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/10 p-2.5">
+                    <div className="flex items-start gap-2 rounded-md bg-gradient-to-r from-primary/5 to-accent/30 border border-primary/10 p-2.5">
                       <span className="text-lg">✨</span>
                       <div className="flex-1">
                         <p className="text-xs font-medium text-primary mb-1">AI Insight</p>
