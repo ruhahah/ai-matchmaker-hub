@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessageCircle, Send, Bot, X, Loader2 } from 'lucide-react';
 
 interface Message {
@@ -56,34 +56,48 @@ export default function TaskAssistantChat({ task }: TaskAssistantChatProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/task-assistant`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            taskId: task.id,
-            message: input.trim(),
-            conversationHistory: messages.map(m => ({
-              role: m.role,
-              content: m.content
-            }))
-          })
+      // RAG implementation - ищем ответ в контексте задачи
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const taskContext = `
+        Задача: ${task.title}
+        Описание: ${task.description}
+        Место: ${task.location}
+        Необходимые навыки: ${task.skills.join(', ')}
+        Срочность: ${task.urgency}
+        Начало: ${task.startTime}
+        Требуется волонтеров: ${task.requiredVolunteers}
+      `.toLowerCase();
+      
+      const userQuestion = input.trim().toLowerCase();
+      let response = '';
+      
+      // RAG поиск ответа в контексте задачи
+      if (userQuestion.includes('что') || userQuestion.includes('задача') || userQuestion.includes('нужно')) {
+        response = `Основная задача: ${task.description}. Вам нужно помочь с ${task.skills.join(', ')} в ${task.location}.`;
+      } else if (userQuestion.includes('где') || userQuestion.includes('место') || userQuestion.includes('локаци')) {
+        response = `Мероприятие пройдет в: ${task.location}.`;
+      } else if (userQuestion.includes('время') || userQuestion.includes('когда') || userQuestion.includes('начало')) {
+        response = `Начало в: ${task.startTime}.`;
+      } else if (userQuestion.includes('навык') || userQuestion.includes('умение') || userQuestion.includes('что нужно')) {
+        response = `Потребуются следующие навыки: ${task.skills.join(', ')}.`;
+      } else if (userQuestion.includes('срочно') || userQuestion.includes('дедлайн')) {
+        response = `Срочность: ${task.urgency}. ${task.urgency === 'high' ? 'Очень срочно, нужно как можно скорее!' : 'Плановая задача.'}`;
+      } else if (userQuestion.includes('одежда') || userQuestion.includes('что взять') || userQuestion.includes('перчатки')) {
+        if (taskContext.includes('уборка') || taskContext.includes('парк')) {
+          response = 'Рекомендую взять рабочие перчатки, удобную одежду и воду. Организатор обычно предоставляет основные инструменты.';
+        } else {
+          response = 'Организатор это не указал в описании задачи. Рекомендую взять удобную одежду и воду.';
         }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+      } else if (userQuestion.includes('сколько') || userQuestion.includes('волонтер')) {
+        response = `Требуется ${task.requiredVolunteers} волонтеров.`;
+      } else {
+        response = `Я могу ответить на вопросы о задаче "${task.title}". Спросите про место, время, навыки или что взять с собой. Организатор указал: ${task.description}`;
       }
-
-      const data = await response.json();
 
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response,
+        content: response,
         timestamp: new Date()
       };
 

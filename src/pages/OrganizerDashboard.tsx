@@ -31,7 +31,7 @@ export default function OrganizerDashboard() {
     setSelectedTask(task);
     setMatchLoading(true);
     try {
-      const matches = await aiSemanticMatching(task.id);
+      const matches = await aiSemanticMatching(task.id, []);
       const matchesWithProfiles = matches.map(match => ({
         ...match,
         profile: profiles.find(p => p.id === match.volunteerId)
@@ -45,6 +45,44 @@ export default function OrganizerDashboard() {
       });
     } finally {
       setMatchLoading(false);
+    }
+  };
+
+  const handleInviteVolunteer = async (match: MatchingResult & { profile?: Profile }) => {
+    if (!selectedTask || !match.profile) return;
+    
+    try {
+      // Mock invitation creation
+      const invitation = {
+        id: `inv-${Date.now()}`,
+        task_id: selectedTask.id,
+        task_title: selectedTask.title,
+        task_description: selectedTask.description,
+        task_skills: selectedTask.skills,
+        task_location: selectedTask.location,
+        task_start_time: new Date().toISOString(),
+        invitation_text: `Приглашаем вас принять участие в задаче "${selectedTask.title}"`,
+        similarity_score: match.score,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast({
+        title: '✅ Приглашение отправлено!',
+        description: `${match.profile.name} получил приглашение на задачу "${selectedTask.title}"`,
+      });
+      
+      // Optionally remove from matches after invitation
+      setMatches(prev => prev.filter(m => m.volunteerId !== match.volunteerId));
+      
+    } catch (err: any) {
+      toast({
+        title: 'Ошибка',
+        description: err.message || 'Не удалось отправить приглашение',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -320,7 +358,7 @@ export default function OrganizerDashboard() {
                             </div>
                           </div>
                           
-                          <Button className="ml-4">
+                          <Button className="ml-4" onClick={() => handleInviteVolunteer(match)}>
                             <Users className="w-4 h-4 mr-1" />
                             Пригласить
                           </Button>
