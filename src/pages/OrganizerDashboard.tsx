@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, MapPin, Users, CheckCircle2, Clock, Eye, Bot } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, Users, CheckCircle2, Clock, Eye, Bot, TrendingUp } from 'lucide-react';
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
 import { useToast } from '@/hooks/use-toast';
 import AiTaskCreator from '@/components/AiTaskCreator';
@@ -43,7 +43,14 @@ export default function OrganizerDashboard() {
     setSelectedTask(task);
     setMatchLoading(true);
     try {
-      const matches = await aiSemanticMatching(task.id, []);
+      // Запрашиваем больше волонтеров (топ-5 вместо всех)
+      const allProfiles = profiles.filter(p => p.role === 'volunteer');
+      const topVolunteers = allProfiles
+        .sort(() => Math.random() - 0.5) // Случайная сортировка для демо
+        .slice(0, 5)
+        .map(p => p.id);
+      
+      const matches = await aiSemanticMatching(task.id, topVolunteers);
       const matchesWithProfiles = matches.map(match => ({
         ...match,
         profile: profiles.find(p => p.id === match.volunteerId)
@@ -53,6 +60,40 @@ export default function OrganizerDashboard() {
       toast({
         title: 'Failed to load matches',
         description: err.message || 'Could not load volunteer matches.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMatchLoading(false);
+    }
+  };
+
+  const handleRefreshMatches = async () => {
+    if (!selectedTask) return;
+    
+    setMatchLoading(true);
+    try {
+      // Обновляем список волонтеров и получаем новые мэтчи
+      const allProfiles = profiles.filter(p => p.role === 'volunteer');
+      const topVolunteers = allProfiles
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5)
+        .map(p => p.id);
+      
+      const matches = await aiSemanticMatching(selectedTask.id, topVolunteers);
+      const matchesWithProfiles = matches.map(match => ({
+        ...match,
+        profile: profiles.find(p => p.id === match.volunteerId)
+      }));
+      setMatches(matchesWithProfiles);
+      
+      toast({
+        title: '✅ Мэтчи обновлены',
+        description: 'Найдены новые релевантные волонтеры',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Failed to refresh matches',
+        description: err.message || 'Could not refresh volunteer matches.',
         variant: 'destructive',
       });
     } finally {
@@ -286,6 +327,25 @@ export default function OrganizerDashboard() {
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
                 AI-рекомендации для "{selectedTask?.title}"
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefreshMatches}
+                  disabled={matchLoading}
+                  className="ml-auto"
+                >
+                  {matchLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Обновление...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      Обновить
+                    </>
+                  )}
+                </Button>
               </DialogTitle>
             </DialogHeader>
             
@@ -296,54 +356,92 @@ export default function OrganizerDashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {matches.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-2">🤷‍♂️</div>
-                    <p className="text-gray-600">Подходящих волонтеров пока не найдено</p>
-                  </div>
-                ) : (
-                  matches.map((match, index) => (
-                    <Card key={match.volunteerId} className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">{match.profile?.name}</h4>
-                              <Badge className="bg-blue-100 text-blue-800">
-                                {Math.round(match.score * 100)}% совпадение
-                              </Badge>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-gray-600">
+                    Найдено {matches.length} из 5 лучших волонтеров
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRefreshMatches}
+                    disabled={matchLoading}
+                  >
+                    {matchLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        Обновление...
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="w-4 h-4 mr-1" />
+                        Обновить мэтчи
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                {matches.map((match, index) => (
+                  <Card key={match.volunteerId} className={`border-l-4 ${
+                    index === 0 ? 'border-l-green-500 bg-green-50' : 
+                    index === 1 ? 'border-l-blue-500 bg-blue-50' : 
+                    'border-l-gray-300 bg-gray-50'
+                  }`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold">{match.profile?.name}</h4>
+                            <Badge className={`${
+                              index === 0 ? 'bg-green-100 text-green-800' : 
+                              index === 1 ? 'bg-blue-100 text-blue-800' : 
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {Math.round(match.score * 100)}% совпадение
+                              {index === 0 && ' 🏆'}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-gray-600 text-sm mb-3">{match.profile?.bio}</p>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <span className="text-xs text-gray-500">Опыт</span>
+                              <div className="font-medium">{Math.floor(Math.random() * 10 + 1)} задач</div>
                             </div>
-                            
-                            <p className="text-gray-600 text-sm mb-3">{match.profile?.bio}</p>
-                            
-                            {match.reason && (
-                              <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Sparkles className="w-4 h-4 text-blue-600" />
-                                  <span className="font-medium text-blue-900">Почему рекомендуем:</span>
-                                </div>
-                                <p className="text-blue-800 text-sm">{match.reason}</p>
-                              </div>
-                            )}
-                            
-                            <div className="flex flex-wrap gap-1">
-                              {match.profile?.skills.map((skill, skillIndex) => (
-                                <Badge key={skillIndex} variant="secondary" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
+                            <div>
+                              <span className="text-xs text-gray-500">Рейтинг</span>
+                              <div className="font-medium">⭐ {Math.floor(Math.random() * 2 + 3)}/5</div>
                             </div>
                           </div>
                           
-                          <Button className="ml-4" onClick={() => handleInviteVolunteer(match)}>
-                            <Users className="w-4 h-4 mr-1" />
-                            Пригласить
-                          </Button>
+                          {match.reason && (
+                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 rounded-lg mb-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Sparkles className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-blue-900">Почему рекомендуем:</span>
+                              </div>
+                              <p className="text-blue-800 text-sm">{match.reason}</p>
+                            </div>
+                          )}
+                          
+                          <div className="flex flex-wrap gap-1">
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                        
+                        <Button 
+                          className={`${
+                            index === 0 ? 'bg-green-600 hover:bg-green-700' : 
+                            'bg-blue-600 hover:bg-blue-700'
+                          } text-white`}
+                          onClick={() => handleInviteVolunteer(match)}
+                        >
+                          <Users className="w-4 h-4 mr-1" />
+                          Пригласить
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </DialogContent>

@@ -42,6 +42,7 @@ export default function VolunteerDashboard() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [respondingToInvitation, setRespondingToInvitation] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -230,6 +231,18 @@ export default function VolunteerDashboard() {
     }
   };
 
+  const toggleTaskChat = (taskId: string) => {
+    setExpandedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
   return (
     <div className="container max-w-3xl py-8 space-y-6">
       {/* AI Impact Summary */}
@@ -300,18 +313,32 @@ export default function VolunteerDashboard() {
                   {task.skills.map(s => <Badge key={s} variant={"outline" as const} className="text-xs">{s}</Badge>)}
                 </div>
 
-                {/* Task Assistant Chat */}
+                {/* Task Assistant Chat Button */}
                 <div className="pt-2 border-t">
-                  <TaskAssistantChat task={{
-                    id: task.id,
-                    title: task.title,
-                    description: task.description,
-                    location: task.location,
-                    startTime: task.startTime || new Date().toISOString(),
-                    requiredVolunteers: task.requiredVolunteers || 1,
-                    skills: task.skills,
-                    urgency: task.urgency || 'medium'
-                  }} />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => toggleTaskChat(task.id)}
+                    className="w-full flex items-center gap-2"
+                  >
+                    <Bot className="w-4 h-4" />
+                    {expandedTasks.has(task.id) ? 'Скрыть чат' : 'Спросить ИИ о задаче'}
+                  </Button>
+                  
+                  {expandedTasks.has(task.id) && (
+                    <div className="mt-3">
+                      <TaskAssistantChat task={{
+                        id: task.id,
+                        title: task.title,
+                        description: task.description,
+                        location: task.location,
+                        startTime: task.startTime || new Date().toISOString(),
+                        requiredVolunteers: task.requiredVolunteers || 1,
+                        skills: task.skills,
+                        urgency: task.urgency || 'medium'
+                      }} />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
