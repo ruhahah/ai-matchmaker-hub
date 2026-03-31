@@ -17,6 +17,9 @@ import AISquadSuggestions from '@/components/AISquadSuggestions';
 import FriendsTeamInvitation from '@/components/FriendsTeamInvitation';
 import FriendsManagement from '@/components/FriendsManagement';
 import DiscoveryFeed from '@/components/DiscoveryFeed';
+import SkillsBasedTasks from '@/components/SkillsBasedTasks';
+import UserSkillsManager from '@/components/UserSkillsManager';
+import { DemoTask } from '@/lib/demoDatabaseFixed';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface RecommendedTask {
@@ -253,6 +256,25 @@ export default function VolunteerDashboard() {
     setChatTask(null);
   };
 
+  const handleTaskSelect = (task: DemoTask) => {
+    // Convert DemoTask to RecommendedTask format if needed
+    const recommendedTask: RecommendedTask = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      skills: task.skills,
+      location: task.location,
+      status: task.status,
+      score: 0, // Default score since SkillsBasedTasks doesn't provide it
+      reason: 'Выбрано из списка задач', // Default reason
+      startTime: task.startTime,
+      requiredVolunteers: task.requiredVolunteers,
+      urgency: task.urgency
+    };
+    setSelectedTask(recommendedTask);
+    // Можно добавить дополнительную логику, например, открытие модального окна с деталями задачи
+  };
+
   return (
     <div className="container max-w-3xl py-8 space-y-6">
       {/* AI Impact Summary */}
@@ -310,99 +332,8 @@ export default function VolunteerDashboard() {
               <p className="text-center text-muted-foreground py-16">Нет доступных задач. Проверьте позже!</p>
             ) : (
               <div className="grid gap-4">
-                {tasks.filter(task => !applied.has(task.id)).map((task, i) => (
-            <Card
-              key={task.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30 animate-slide-up"
-              style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}
-              onClick={() => { setSelectedTask(task); setVisionResult(null); setSelectedPhoto(null); }}
-            >
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display font-semibold">{task.title}</h3>
-                      {task.status === 'completed' && (
-                        <Badge className="bg-success/10 text-success border-success/20">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Completed
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                      <MapPin className="h-3 w-3" />
-                      {task.location}
-                    </div>
-                  </div>
-                  {task.status !== 'completed' && (
-                    <Badge className="gradient-primary text-primary-foreground border-0 shrink-0">
-                      {Math.round(task.score * 100)}%
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Trust UI — AI Explanation */}
-                <div className="flex items-start gap-2 rounded-lg bg-accent/60 p-3">
-                  <Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-primary animate-pulse-glow" />
-                  <p className="text-xs text-accent-foreground leading-relaxed">{task.reason}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {task.skills.map(s => <Badge key={s} variant={"outline" as const} className="text-xs">{s}</Badge>)}
-                </div>
-
-                {/* Task Assistant Chat Button */}
-                <div className="pt-2 border-t space-y-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                    e.stopPropagation();
-                    openChatModal(task);
-                  }}
-                    className="w-full flex items-center gap-2"
-                  >
-                    <Bot className="w-4 h-4" />
-                    Спросить ИИ о задаче
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFriendsTaskId(task.id);
-                      setFriendsTaskTitle(task.title);
-                      setFriendsTaskLocation(task.location);
-                      setFriendsTeamOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2"
-                  >
-                    <User className="w-4 h-4" />
-                    Собрать команду из друзей
-                  </Button>
-                  
-                  <Button 
-                    variant="default" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleApply(task.id);
-                      toast({
-                        title: '✅ Заявка подана!',
-                        description: 'Вы подали заявку на участие в задаче',
-                      });
-                    }}
-                    className="w-full flex items-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    Подать заявку
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <SkillsBasedTasks userId={volunteerId} onTaskSelect={handleTaskSelect} />
+              </div>
             )}
           </TabsContent>
           

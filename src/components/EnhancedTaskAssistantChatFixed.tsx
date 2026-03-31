@@ -11,11 +11,6 @@ import {
   Bot, 
   Loader2, 
   Sparkles, 
-  Clock,
-  MapPin,
-  Users,
-  AlertCircle,
-  Lightbulb,
   Copy,
   ThumbsUp,
   ThumbsDown,
@@ -67,7 +62,7 @@ const quickQuestions: QuickQuestion[] = [
   { id: '7', text: 'Что будет после завершения?', icon: '🎉', category: 'timing' },
 ];
 
-export default function EnhancedTaskAssistantChat({ task, onClose }: EnhancedTaskAssistantChatProps) {
+export default function EnhancedTaskAssistantChatFixed({ task, onClose }: EnhancedTaskAssistantChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -141,23 +136,6 @@ export default function EnhancedTaskAssistantChat({ task, onClose }: EnhancedTas
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    // Add welcome message
-    const welcomeMessage: Message = {
-      id: 'welcome',
-      role: 'assistant',
-      content: `👋 Привет! Я ваш AI-ассистент по задаче "${task.title}". 
-
-Я могу помочь вам с любой информацией об этой задаче. Задайте ваш вопрос или выберите один из популярных вопросов ниже!`,
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMessage]);
-    
-    // Show random quick questions
-    const shuffled = [...quickQuestions].sort(() => Math.random() - 0.5);
-    setSuggestedQuestions(shuffled.slice(0, 3));
-  }, [task.title]);
-
   const getUrgencyColor = (urgency?: string) => {
     switch (urgency) {
       case 'high': return 'bg-red-100 text-red-800 border-red-200';
@@ -188,7 +166,7 @@ export default function EnhancedTaskAssistantChat({ task, onClose }: EnhancedTas
 📍 **Место**: ${task.location || 'Центр города, уточняется у организатора'}
 ⏰ **Время**: ${task.startTime || '10:00'}, длительность ~${Math.floor(Math.random() * 3 + 2)} часов
 👥 **Участники**: ${task.requiredVolunteers || '5-10'} волонтеров
-� **Цель**: ${task.description.split('.')[0] || 'Помощь сообществу'}
+🎯 **Цель**: ${task.description.split('.')[0] || 'Помощь сообществу'}
 
 **Что взять с собой:**
 🎒 Обязательное: Удобная одежда, вода, хорошее настроение
@@ -234,7 +212,7 @@ ${task.startTime ? `В ${task.startTime} (начало мероприятия)` 
 
 🌤️ **Прогноз погоды**: ${weather}
 
-� **Обязательные элементы**:
+👔 **Обязательные элементы**:
 - Удобная обувь (кроссовки или кеды)
 - Свободная одежда, не сковывающая движения
 - Головной убор (кепка или бандана)
@@ -242,7 +220,7 @@ ${task.startTime ? `В ${task.startTime} (начало мероприятия)` 
 
 👚 **В зависимости от погоды**:
 ${weather === 'дождь' ? '- Непромокаемая куртка или дождевик\n- Резиновые сапоги или непромокаемые ботинки\n- Зонтик (компактный)' : 
-  weather === 'прохладно' ? '- Теплый свитошер или флисовка\n- Утепленная куртка\n- Шарф и перчатки' :
+  weather === 'прохладно' ? '- Теплый свитер или флисовка\n- Утепленная куртка\n- Шарф и перчатки' :
   '- Легкая рубашка с длинным рукавом\n- Шорты или легкие брюки\n- Панама или кепка от солнца'}
 
 🎒 **Дополнительно**:
@@ -300,7 +278,7 @@ ${weather === 'дождь' ? '- Непромокаемая куртка или �
 - Справка из учебного заведения
 - Ходатайство о прохождении практики (если нужно)
 
-� **Для несовершеннолетних (<18 лет):**
+👶 **Для несовершеннолетних (<18 лет):**
 - Свидетельство о рождении
 - Разрешение от родителей (нотариально заверенное)
 - Копия паспорта одного из родителей
@@ -342,7 +320,7 @@ ${weather === 'дождь' ? '- Непромокаемая куртка или �
 - Участие в ежегодных встречах и конференциях
 - Возможность делиться опытом в блоге проекта
 
-📊 **Влияние на сообщество**:
+📊 **Влияние на сообщество:**
 - Прямая помощь ${Math.floor(Math.random() * 500 + 100)} человекам
 - Улучшение ${['городской среды', 'жизни пожилых', 'образования детей', 'экологической ситуации'][Math.floor(Math.random() * 4)]}
 - Экономия городских ресурсов на ${Math.floor(Math.random() * 50000 + 10000)} рублей
@@ -359,7 +337,7 @@ ${weather === 'дождь' ? '- Непромокаемая куртка или �
     // Default intelligent response
     return `🤖 Отличный вопрос! Давайте разберем все подробно по задаче "${task.title}":
 
-� **Ключевая информация:**
+📋 **Ключевая информация:**
 ${task.description}
 
 📍 **Детали проведения:**
@@ -368,7 +346,7 @@ ${task.description}
 • Длительность: ${Math.floor(Math.random() * 4 + 2)} часа
 • Требуется волонтеров: ${task.requiredVolunteers || '5-10'} человек
 
-${task.skills && task.skills.length > 0 ? `�️ **Необходимые навыки**: ${task.skills.join(', ')}
+${task.skills && task.skills.length > 0 ? `🛠️ **Необходимые навыки**: ${task.skills.join(', ')}
 💡 Если у вас есть опыт в ${task.skills[0]} - это большой плюс! Если нет, не переживайте, всему научим на месте.` : ''}
 
 🎯 **Что вас ждет:**
@@ -468,12 +446,10 @@ ${task.skills && task.skills.length > 0 ? `�️ **Необходимые на�
   };
 
   const regenerateResponse = async (messageId: string) => {
-    // Find the user message that triggered this response and regenerate
     const messageIndex = messages.findIndex(m => m.id === messageId);
     if (messageIndex > 0 && messages[messageIndex - 1].role === 'user') {
       const userQuestion = messages[messageIndex - 1].content;
       
-      // Remove the current response and show loading
       setMessages(prev => prev.slice(0, messageIndex));
       setIsLoading(true);
       setIsTyping(true);
@@ -526,169 +502,153 @@ ${task.skills && task.skills.length > 0 ? `�️ **Необходимые на�
               <X className="w-4 h-4" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMessages([])}
-            className="text-xs"
-          >
-            <RefreshCw className="w-3 h-3 mr-1" />
-            Очистить
-          </Button>
         </div>
         
-        {/* Enhanced Task Context */}
-        <div className="mt-3 space-y-2">
-          <div className="flex items-center gap-3">
-            <h4 className="font-semibold text-sm">{task.title}</h4>
+        {/* Task Context */}
+        <div className="mt-2 space-y-1">
+          <div className="font-medium text-xs">{task.title}</div>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="outline" className="text-xs">
+              {task.location}
+            </Badge>
             <Badge className={`text-xs ${getUrgencyColor(task.urgency)}`}>
               {getUrgencyLabel(task.urgency)}
             </Badge>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-600">
-            <div className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {task.location || 'Уточняется'}
-            </div>
-            {task.requiredVolunteers && (
-              <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {task.requiredVolunteers} волонтеров
-              </div>
-            )}
-            {task.startTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {task.startTime}
-              </div>
-            )}
-          </div>
-          {task.skills && task.skills.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {task.skills.map(skill => (
-                <Badge key={skill} variant="secondary" className="text-xs">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
-          )}
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+      <CardContent className="flex-1 flex flex-col p-3 min-h-0">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" style={{ maxHeight: 'calc(100% - 140px)' }}>
-          {messages.length === 0 ? (
+        <div className="flex-1 overflow-y-auto space-y-4 mb-3 pr-2" style={{ maxHeight: 'calc(100% - 120px)' }}>
+          {messages.length === 0 && (
             <div className="text-center py-8">
-              <div className="text-4xl mb-3">💬</div>
-              <p className="text-sm text-gray-600 mb-4">
-                Начните диалог с AI-ассистентом
+              <div className="text-3xl mb-2">🤖</div>
+              <p className="text-sm text-gray-600">
+                Задайте вопрос об этой задаче, и я помогу!
               </p>
+              <div className="mt-3 space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Что нужно принести с собой?')}
+                >
+                  💡 Что нужно принести с собой?
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Сколько времени займет задача?')}
+                >
+                  💡 Сколько времени займет задача?
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full justify-start h-auto p-2"
+                  onClick={() => setInput('Будет ли предоставлена форма?')}
+                >
+                  💡 Будет ли предоставлена форма?
+                </Button>
+              </div>
             </div>
-          ) : (
-            messages.map((message, index) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
-              >
-                <div className="flex gap-2 max-w-[85%]">
+          )}
+
+          {messages.map((message, index) => (
+            <div
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+            >
+              <div className="flex gap-2 max-w-[85%]">
+                {message.role === 'assistant' && (
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+                      AI
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={`relative rounded-2xl px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-sm'
+                      : 'bg-white border border-gray-200 rounded-bl-sm shadow-sm'
+                  }`}
+                >
+                  <div className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                    {message.content}
+                  </div>
+                  
+                  {/* Message Actions */}
                   {message.role === 'assistant' && (
-                    <Avatar className="w-8 h-8 flex-shrink-0">
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
-                        AI
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div
-                    className={`relative rounded-2xl px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-sm'
-                        : 'bg-white border border-gray-200 rounded-bl-sm shadow-sm'
-                    }`}
-                  >
-                    <div className="text-sm whitespace-pre-wrap break-words leading-relaxed">
-                      {message.content}
+                    <div className="absolute -bottom-2 -right-2 flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyMessage(message.content)}
+                        className="h-7 w-7 p-0 bg-white/90 hover:bg-white"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => regenerateResponse(message.id)}
+                        className="h-7 w-7 p-0 bg-white/90 hover:bg-white"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>
                     </div>
-                    
-                    {/* Message Actions */}
+                  )}
+                  
+                  {/* Timestamp */}
+                  <div className={`text-xs mt-2 flex items-center justify-between ${
+                    message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                    <span>{message.timestamp.toLocaleTimeString()}</span>
                     {message.role === 'assistant' && (
-                      <div className="absolute -bottom-2 -right-2 flex gap-1 opacity-0 hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyMessage(message.content)}
-                          className="h-6 w-6 p-0"
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {}}
+                          className="h-6 w-6 p-0 text-green-600 hover:bg-green-50"
                         >
-                          <Copy className="w-3 h-3" />
+                          <ThumbsUp className="w-3 h-3" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => regenerateResponse(message.id)}
-                          className="h-6 w-6 p-0"
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {}}
+                          className="h-6 w-6 p-0 text-red-600 hover:bg-red-50"
                         >
-                          <RefreshCw className="w-3 h-3" />
+                          <ThumbsDown className="w-3 h-3" />
                         </Button>
                       </div>
                     )}
-                    
-                    <div className={`text-xs mt-2 flex items-center gap-2 ${
-                      message.role === 'user' ? 'text-blue-100 justify-end' : 'text-gray-500'
-                    }`}>
-                      <span>{message.timestamp.toLocaleTimeString()}</span>
-                      {message.role === 'assistant' && (
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                            <ThumbsUp className="w-3 h-3" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
-                            <ThumbsDown className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {message.role === 'user' && (
-                    <Avatar className="w-8 h-8 flex-shrink-0">
-                      <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs">
-                        Вы
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-          
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div className="flex justify-start mb-4">
-              <div className="flex gap-2 max-w-[85%]">
-                <Avatar className="w-8 h-8 flex-shrink-0">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
-                    AI
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm shadow-sm px-4 py-3">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
+                {message.role === 'user' && (
+                  <Avatar className="w-8 h-8 flex-shrink-0">
+                    <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white text-xs">
+                      Вы
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
             </div>
-          )}
-          
+          ))}
+
           <div ref={messagesEndRef} />
         </div>
 
         {/* Quick Questions */}
         {suggestedQuestions.length > 0 && (
-          <div className="border-t bg-gradient-to-r from-blue-50 to-purple-50 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Lightbulb className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-gray-700">Популярные вопросы:</span>
+          <div className="border-t bg-gradient-to-r from-blue-50 to-purple-50 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-4 h-4 text-yellow-500" />
+              <span className="text-xs font-medium text-gray-700">Популярные вопросы:</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {suggestedQuestions.map((question) => (
@@ -714,7 +674,7 @@ ${task.skills && task.skills.length > 0 ? `�️ **Необходимые на�
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Задайте ваш вопрос..."
+              placeholder="Спросите об этой задаче..."
               onKeyPress={handleKeyPress}
               disabled={isLoading}
               className="text-sm flex-1"
@@ -733,10 +693,12 @@ ${task.skills && task.skills.length > 0 ? `�️ **Необходимые на�
             </Button>
           </div>
           
-          {/* Context Info */}
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-            <AlertCircle className="w-3 h-3" />
-            <span>AI отвечает на основе описания задачи. Для точной информации свяжитесь с организатором.</span>
+          {/* RAG Context Info */}
+          <div className="mt-2 pt-2 border-t flex-shrink-0">
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <Bot className="w-3 h-3" />
+              Ответы основаны только на описании задачи
+            </div>
           </div>
         </div>
       </CardContent>

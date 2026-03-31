@@ -31,7 +31,7 @@ interface AiTaskCreatorProps {
   onTaskCreated?: () => void;
 }
 
-export default function AiTaskCreator({ onTaskCreated }: AiTaskCreatorProps) {
+export default function AITaskCoordinator({ onTaskCreated }: AiTaskCreatorProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);

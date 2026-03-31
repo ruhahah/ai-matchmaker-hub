@@ -326,13 +326,6 @@ export default function OrganizerDashboard() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8 text-gray-500">
-                        <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>Формирование команд доступно волонтерам</p>
-                        <p className="text-sm">Волонтеры могут приглашать друзей для совместной работы над задачами</p>
-                      </div>
-                    </CardContent>
                   </Card>
                 ))
               )}

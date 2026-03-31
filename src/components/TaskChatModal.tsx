@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bot, X, Sparkles, MapPin, Users, Clock } from 'lucide-react';
-import EnhancedTaskAssistantChat from './EnhancedTaskAssistantChat';
+import EnhancedTaskAssistantChat from './EnhancedTaskAssistantChatFixed';
 
 interface Task {
   id: string;
@@ -120,7 +120,7 @@ export default function TaskChatModal({ isOpen, onClose, task }: TaskChatModalPr
         </DialogHeader>
         
         <div className="flex-1 min-h-0 mt-4">
-          <EnhancedTaskAssistantChat task={task} />
+          <EnhancedTaskAssistantChat task={task} onClose={onClose} />
         </div>
       </DialogContent>
     </Dialog>
