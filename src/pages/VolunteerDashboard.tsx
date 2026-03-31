@@ -11,6 +11,7 @@ import AIImpactSummary from '@/components/AIImpactSummary';
 import ImpactCertificate from '@/components/ImpactCertificate';
 import { useToast } from '@/hooks/use-toast';
 import TaskAssistantChat from '@/components/TaskAssistantChat';
+import EnhancedTaskAssistantChat from '@/components/EnhancedTaskAssistantChat';
 import TaskChatModal from '@/components/TaskChatModal';
 import AISquadSuggestions from '@/components/AISquadSuggestions';
 import FriendsTeamInvitation from '@/components/FriendsTeamInvitation';
