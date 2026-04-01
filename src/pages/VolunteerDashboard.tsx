@@ -5,11 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-<<<<<<< HEAD
 import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users, Bell } from 'lucide-react';
-=======
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users } from 'lucide-react';
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
 import { aiTaskRecommendations, aiVisionVerify, getProfiles, getPendingInvitations, acceptInvitationAndApply, respondToInvitation, type TaskRecommendation, type VisionResult, type VolunteerInvitation } from '@/lib/mockApi';
 import AIImpactSummary from '@/components/AIImpactSummary';
 import ImpactCertificate from '@/components/ImpactCertificate';
@@ -431,12 +427,8 @@ export default function VolunteerDashboard() {
                     {task.requiredVolunteers && (
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Users className="h-3 w-3" />
-<<<<<<< HEAD
                         Нужно: {task.requiredVolunteers} {task.requiredVolunteers === 1 ? 'волонтер' : 
                           task.requiredVolunteers > 1 && task.requiredVolunteers < 5 ? 'волонтера' : 'волонтеров'}
-=======
-                        Нужно: {task.requiredVolunteers} волонтеров
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
                       </div>
                     )}
                   </div>
@@ -668,12 +660,8 @@ export default function VolunteerDashboard() {
           </div>
           {selectedTask?.requiredVolunteers && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-<<<<<<< HEAD
               <Users className="h-3 w-3" /> Нужно: {selectedTask.requiredVolunteers} {selectedTask.requiredVolunteers === 1 ? 'волонтер' : 
                 selectedTask.requiredVolunteers > 1 && selectedTask.requiredVolunteers < 5 ? 'волонтера' : 'волонтеров'}
-=======
-              <Users className="h-3 w-3" /> Нужно: {selectedTask.requiredVolunteers} волонтеров
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
             </div>
           )}
           <div className="flex flex-wrap gap-1.5 my-2">
@@ -815,11 +803,7 @@ export default function VolunteerDashboard() {
             </DialogTitle>
           </DialogHeader>
           {selectedTask && (
-<<<<<<< HEAD
             <RAGTaskAssistantChat task={selectedTask} />
-=======
-            <TaskAssistantChat task={selectedTask} />
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
           )}
         </DialogContent>
       </Dialog>

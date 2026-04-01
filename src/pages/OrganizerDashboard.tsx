@@ -15,11 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Plus, Eye, Edit, Users, Sparkles, UserPlus, CheckCircle, MapPin, Star, Clock, Target, TrendingUp, Bot, Filter, ArrowUpDown, Mail, Bell, MessageSquare, Calendar, Award, XCircle, ChevronRight } from 'lucide-react';
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
-<<<<<<< HEAD
 import { demoDatabase, type DemoProfile } from '@/lib/demoDatabase';
-=======
-import { demoDatabase, type DemoProfile } from '@/lib/demoDatabaseFixed';
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
 import { useToast } from '@/hooks/use-toast';
 import AiTaskInterviewer from '@/components/AiTaskInterviewer';
 import { TaskData } from '@/lib/aiTaskInterview';
@@ -87,7 +83,6 @@ export default function OrganizerDashboard() {
   });
 
   useEffect(() => {
-<<<<<<< HEAD
     // Используем demoDatabase для получения пользователей и задач
     const allUsers = demoDatabase.getUsers();
     const volunteerUsers = allUsers.filter(user => user.role === 'volunteer');
@@ -112,26 +107,13 @@ export default function OrganizerDashboard() {
     setLoading(false);
     
     // Загружаем количество непрочитанных уведомлений
-    setUnreadNotifications(responsesDatabase.getUnreadCount('org-1'));
+    setUnreadNotifications(responsesDatabase.getUnreadCount('org-1', 'organizer'));
     
     // Загружаем все отклики для вкладки откликов
     loadAllResponses();
-=======
-    // Используем demoDatabase для получения пользователей
-    const allUsers = demoDatabase.getUsers();
-    const volunteerUsers = allUsers.filter(user => user.role === 'volunteer');
-    
-    Promise.all([getTasks('organizer')]).then(([t]) => {
-      setTasks(t);
-      setProfiles(volunteerUsers);
-      setLoading(false);
-    });
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
   }, []);
 
   useEffect(() => {
-    loadTasks();
-    loadProfiles();
     
     // Запускаем фоновый AI-менеджер
     backgroundManager.start();
@@ -408,7 +390,6 @@ export default function OrganizerDashboard() {
         return;
       }
       
-<<<<<<< HEAD
       // Используем ID задачи или создаем временный ID для демо
       const taskId = task.id || `task-${task.title.replace(/\s+/g, '-').toLowerCase()}`;
       
@@ -419,7 +400,6 @@ export default function OrganizerDashboard() {
       const enhancedMatches = matches.map(match => {
         const profile = profiles.find(p => p.id === match.volunteerId);
         if (!profile) {
-          // Создаем минимальный профиль для несуществующих пользователей
           const fallbackProfile: DemoProfile = {
             id: match.volunteerId,
             name: 'Неизвестный волонтер',
@@ -448,7 +428,6 @@ export default function OrganizerDashboard() {
         let enhancedScore = match.score;
         let bonusReasons: string[] = [];
         
-        // Бонус за совпадение навыков (каждый совпавший навык +0.1)
         const matchingSkills = task.skills?.filter(skill => 
           profile.skills.some(profileSkill => 
             profileSkill.toLowerCase().includes(skill.toLowerCase()) || 
@@ -461,7 +440,6 @@ export default function OrganizerDashboard() {
           bonusReasons.push(`${matchingSkills.length} совпавших навыков`);
         }
         
-        // Бонус за локацию (если в том же городе +0.15)
         if (profile.location === task.location || 
             profile.location.includes(task.location?.split(',')[0] || '') ||
             task.location?.includes(profile.location)) {
@@ -469,26 +447,22 @@ export default function OrganizerDashboard() {
           bonusReasons.push('Локация совпадает');
         }
         
-        // Бонус за опыт (более 15 выполненных задач +0.1)
         if (profile.stats.tasksCompleted > 15) {
           enhancedScore += 0.1;
           bonusReasons.push('Опытный волонтер');
         }
         
-        // Бонус за высокий рейтинг (4.8+ +0.1)
         if (profile.stats.rating >= 4.8) {
           enhancedScore += 0.1;
           bonusReasons.push('Высокий рейтинг');
         }
         
-        // Бонус за доступность (если не занят в это время)
         const taskHour = task.startTime ? parseInt(task.startTime.split(':')[0]) : 12;
         if (taskHour >= 9 && taskHour <= 18) {
-          enhancedScore += 0.05; // Предполагаем, что волонтеры доступны днем
+          enhancedScore += 0.05;
           bonusReasons.push('Удобное время');
         }
         
-        // Ограничиваем максимальный счет
         enhancedScore = Math.min(enhancedScore, 1.0);
         
         return {
@@ -501,68 +475,14 @@ export default function OrganizerDashboard() {
         };
       });
       
-      // Сортируем по улучшенному счету
       const sortedMatches = enhancedMatches
         .sort((a, b) => b.enhancedScore - a.enhancedScore)
-        .slice(0, 10); // Топ-10 лучших мэтчей
+        .slice(0, 10);
       
       setMatches(sortedMatches);
       
-      // Показываем детальную информацию о лучших мэтчах
       const topMatch = sortedMatches[0];
       const improvement = topMatch ? ((topMatch.enhancedScore - topMatch.originalScore) * 100).toFixed(1) : '0';
-=======
-      // Сортируем по score (убывание) и добавляем профили
-      const matchesWithProfiles = matches
-        .sort((a, b) => b.score - a.score) // Сортировка по убыванию
-        .slice(0, 10) // Берем топ-10
-        .map(match => {
-          const profile = profiles.find(p => p.id === match.volunteerId);
-          if (!profile) {
-            // Создаем минимальный профиль для несуществующих пользователей
-            const fallbackProfile: DemoProfile = {
-              id: match.volunteerId,
-              name: 'Неизвестный волонтер',
-              email: '',
-              role: 'volunteer',
-              bio: 'Профиль не найден',
-              avatar: '',
-              location: '',
-              skills: [],
-              friends: [],
-              friendRequests: { sent: [], received: [] },
-              stats: { tasksCompleted: 0, hoursVolunteered: 0, rating: 0 },
-              invitations: []
-            };
-            
-            return {
-              ...match,
-              profile: fallbackProfile,
-              enhancedScore: match.score,
-              originalScore: match.score,
-              matchingSkills: [],
-              bonusReasons: []
-            };
-          }
-          
-          // Базовые совпавшие навыки (без дополнительной логики)
-          const matchingSkills = task.skills.filter(skill => 
-            profile.skills.some(profileSkill => 
-              profileSkill.toLowerCase().includes(skill.toLowerCase()) || 
-              skill.toLowerCase().includes(profileSkill.toLowerCase())
-            )
-          );
-          
-          return {
-            ...match,
-            profile,
-            enhancedScore: match.score,
-            originalScore: match.score,
-            matchingSkills,
-            bonusReasons: []
-          };
-        });
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
       
       toast({
         title: '🎯 Найдены лучшие волонтеры!',
@@ -581,128 +501,10 @@ export default function OrganizerDashboard() {
   };
 
   const handleRefreshMatches = async () => {
-<<<<<<< HEAD
     if (!selectedTask) {
       toast({
         title: 'Ошибка',
         description: 'Задача не выбрана',
-=======
-    if (!selectedTask) return;
-    
-    setMatchLoading(true);
-    try {
-      // Получаем всех волонтеров
-      const allProfiles = profiles.filter(p => p.role === 'volunteer');
-      
-      // Получаем базовые мэтчи через AI
-      const matches = await aiSemanticMatching(selectedTask.id, allProfiles.map(p => p.id));
-      
-      // Улучшенная система подсчета очков совпадения
-      const enhancedMatches = matches.map(match => {
-        const profile = profiles.find(p => p.id === match.volunteerId);
-        if (!profile) {
-          // Создаем минимальный профиль для несуществующих пользователей
-          const fallbackProfile: DemoProfile = {
-            id: match.volunteerId,
-            name: 'Неизвестный волонтер',
-            email: '',
-            role: 'volunteer',
-            bio: 'Профиль не найден',
-            avatar: '',
-            location: '',
-            skills: [],
-            friends: [],
-            friendRequests: { sent: [], received: [] },
-            stats: { tasksCompleted: 0, hoursVolunteered: 0, rating: 0 },
-            invitations: []
-          };
-          
-          return {
-            ...match,
-            profile: fallbackProfile,
-            enhancedScore: match.score,
-            originalScore: match.score,
-            matchingSkills: [],
-            bonusReasons: []
-          };
-        }
-        
-        let enhancedScore = match.score;
-        let bonusReasons: string[] = [];
-        
-        // Бонус за совпадение навыков (каждый совпавший навык +0.1)
-        const matchingSkills = selectedTask.skills.filter(skill => 
-          profile.skills.some(profileSkill => 
-            profileSkill.toLowerCase().includes(skill.toLowerCase()) || 
-            skill.toLowerCase().includes(profileSkill.toLowerCase())
-          )
-        );
-        
-        if (matchingSkills.length > 0) {
-          enhancedScore += (matchingSkills.length * 0.1);
-          bonusReasons.push(`${matchingSkills.length} совпавших навыков`);
-        }
-        
-        // Бонус за локацию (если в том же городе +0.15)
-        if (profile.location === selectedTask.location || 
-            profile.location.includes(selectedTask.location.split(',')[0]) ||
-            selectedTask.location.includes(profile.location)) {
-          enhancedScore += 0.15;
-          bonusReasons.push('Локация совпадает');
-        }
-        
-        // Бонус за опыт (более 15 выполненных задач +0.1)
-        if (profile.stats.tasksCompleted > 15) {
-          enhancedScore += 0.1;
-          bonusReasons.push('Опытный волонтер');
-        }
-        
-        // Бонус за высокий рейтинг (4.8+ +0.1)
-        if (profile.stats.rating >= 4.8) {
-          enhancedScore += 0.1;
-          bonusReasons.push('Высокий рейтинг');
-        }
-        
-        // Бонус за доступность (если не занят в это время)
-        const taskHour = parseInt(selectedTask.startTime.split(':')[0]);
-        if (taskHour >= 9 && taskHour <= 18) {
-          enhancedScore += 0.05; // Предполагаем, что волонтеры доступны днем
-          bonusReasons.push('Удобное время');
-        }
-        
-        // Ограничиваем максимальный счет
-        enhancedScore = Math.min(enhancedScore, 1.0);
-        
-        return {
-          ...match,
-          enhancedScore,
-          profile,
-          matchingSkills,
-          bonusReasons,
-          originalScore: match.score
-        };
-      });
-      
-      // Сортируем по улучшенному счету
-      const sortedMatches = enhancedMatches
-        .sort((a, b) => b.enhancedScore - a.enhancedScore)
-        .slice(0, 10); // Топ-10 лучших мэтчей
-      
-      setMatches(sortedMatches);
-      
-      // Показываем детальную информацию о лучших мэтчах
-      const topMatch = sortedMatches[0];
-      const improvement = topMatch ? ((topMatch.enhancedScore - topMatch.originalScore) * 100).toFixed(1) : '0';
-      
-      toast({
-        title: '🎯 Найдены лучшие волонтеры!',
-        description: `Топ-${sortedMatches.length} кандидатов с улучшенным мэтчингом. Лучший кандидат: ${topMatch?.profile.name} (${Math.round(topMatch.enhancedScore * 100)}% совпадение, улучшение на ${improvement}%)`,
-      });
-    } catch (err: any) {
-      toast({
-        title: 'Ошибка при поиске мэтчей',
-        description: err.message || 'Не удалось найти подходящих волонтеров',
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
         variant: 'destructive',
       });
       return;
@@ -1594,11 +1396,7 @@ export default function OrganizerDashboard() {
                                   [matchId]: { ...prev[matchId], invited: true }
                                 }));
                                 toast({
-<<<<<<< HEAD
-                                  title: '� Приглашение отправлено',
-=======
                                   title: '📧 Приглашение отправлено',
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
                                   description: `${match.profile.name} получит уведомление о задаче`,
                                 });
                               }}
