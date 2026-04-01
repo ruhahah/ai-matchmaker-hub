@@ -59,17 +59,23 @@ export default function ResponsesManager({ taskId, taskTitle }: ResponsesManager
 
   const loadResponses = () => {
     const allResponses = responsesDatabase.getTaskResponses(taskId);
-    const filteredResponses = responsesDatabase.filterResponses(allResponses, filters);
+    const filteredResponses = responsesDatabase.getFilteredResponses(taskId, filters);
     setResponses(filteredResponses);
     
-    const taskStats = responsesDatabase.getTaskResponseStats(taskId);
+    const taskResponses = responsesDatabase.getTaskResponses(taskId);
+    const taskStats: any = {
+      total: taskResponses.length,
+      pending: taskResponses.filter(r => r.status === 'pending').length,
+      accepted: taskResponses.filter(r => r.status === 'accepted').length,
+      rejected: taskResponses.filter(r => r.status === 'rejected').length,
+    };
     setStats(taskStats);
   };
 
   const loadNotifications = () => {
     const allNotifications = responsesDatabase.getNotificationsForOrganizer('org-1');
     setNotifications(allNotifications);
-    setUnreadCount(responsesDatabase.getUnreadCount('org-1'));
+    setUnreadCount(responsesDatabase.getUnreadCount('org-1', 'organizer'));
   };
 
   const handleStatusUpdate = (responseId: string, status: Response['status']) => {

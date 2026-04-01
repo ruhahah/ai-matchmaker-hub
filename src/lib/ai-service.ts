@@ -289,7 +289,9 @@ export async function createTaskWithMatching(taskData: {
 }) {
   try {
     // Import Supabase client
-    const { supabase, updateTaskEmbedding, matchVolunteers, createApplication } = await import('./supabase');
+    const supabaseModule = await import('./supabase');
+    const { updateTaskEmbedding, matchVolunteers, createApplication } = supabaseModule;
+    const { supabase } = await import('@/integrations/supabase/client');
     
     // Generate embedding for the task
     const embeddingText = `${taskData.title} ${taskData.description} ${taskData.skills.join(' ')}`;
@@ -322,8 +324,8 @@ export async function createTaskWithMatching(taskData: {
     const applicationsWithExplanations = await Promise.all(
       matches.slice(0, 5).map(async (match) => {
         const explanation = await generateMatchExplanation(
-          match.volunteer_bio || '',
-          match.volunteer_skills || [],
+          match.reason || '',
+          [],
           taskData.description,
           taskData.skills
         );
@@ -331,7 +333,7 @@ export async function createTaskWithMatching(taskData: {
         return {
           task_id: task.id,
           volunteer_id: match.volunteer_id,
-          ai_score: match.similarity_score,
+          ai_score: match.score,
           ai_reason: explanation,
           status: 'pending' as const
         };
@@ -365,7 +367,8 @@ export async function updateProfileWithEmbedding(profileId: string, profileData:
   skills?: string[];
 }) {
   try {
-    const { supabase, updateProfileEmbedding } = await import('./supabase');
+    const { updateProfileEmbedding } = await import('./supabase');
+    const { supabase } = await import('@/integrations/supabase/client');
     
     // Update profile data
     const { data: profile, error: updateError } = await supabase

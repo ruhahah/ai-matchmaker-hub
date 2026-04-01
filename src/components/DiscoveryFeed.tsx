@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, MapPin, Clock, TrendingUp, Zap, CheckCircle, Star, Heart, Target } from 'lucide-react';
-import { getDemoProfile, updateDemoProfileRating, type DemoVolunteerProfile } from '@/lib/demoProfile';
+import { getDemoVolunteerProfile, updateDemoVolunteerProfile, type DemoVolunteerProfile } from '@/lib/demoProfile';
 import { aiTaskRecommendations, getProfiles, type TaskRecommendation } from '@/lib/mockApi';
 import AiMatchReason from '@/components/AiMatchReason';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +41,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const profile = await getDemoProfile();
+      const profile = await getDemoVolunteerProfile('vol-1');
       setDemoProfile(profile);
     };
 
@@ -55,7 +55,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
   const handleAcceptTask = async (taskId: string) => {
     try {
       // Simulate task acceptance
-      await updateDemoProfileRating((demoProfile?.rating || 0) + 0.1);
+      await updateDemoVolunteerProfile('vol-1', {});
       
       toast({
         title: '✅ Задача принята!',
@@ -121,7 +121,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
                     ))}
                   </div>
                   <span className="text-sm text-gray-600">
-                    Рейтинг: {demoProfile.rating?.toFixed(1)}/5.0
+                    Рейтинг: {(demoProfile.completedTasks / 5).toFixed(1)}/5.0
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
@@ -142,7 +142,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Target className="w-4 h-4 text-blue-600" />
-                      <span>Присоединился: {new Date(demoProfile.joinedAt || '').toLocaleDateString('ru-RU')}</span>
+                      <span>Выполнено часов: {demoProfile.totalHours}</span>
                     </div>
                   </div>
                 </div>

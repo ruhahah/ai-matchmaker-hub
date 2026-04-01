@@ -180,7 +180,7 @@ export async function createTaskWithAI(taskData: {
       description: result.task.description,
       skills: result.task.skills,
       location: result.task.location || '',
-      status: result.task.status,
+      status: result.task.status as 'open' | 'in_progress' | 'completed',
       creatorId: result.task.creator_id,
     };
     
@@ -217,7 +217,7 @@ export async function updateProfileWithAI(profileId: string, profileData: {
       avatar: '', // We'll need to add this field
       skills: result.skills,
       bio: result.bio || '',
-      role: result.user_role,
+      role: result.role as 'volunteer' | 'organizer',
     };
   } catch (error) {
     console.error('Update profile with AI error:', error);
