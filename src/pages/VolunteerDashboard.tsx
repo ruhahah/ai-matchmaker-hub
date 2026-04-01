@@ -12,7 +12,7 @@ import { friendsService } from '@/lib/friendsService';
 import { responsesDatabase } from '@/lib/responsesService';
 import AIImpactSummary from '@/components/AIImpactSummary';
 import ImpactCertificate from '@/components/ImpactCertificate';
-import TaskAssistantChat from '@/components/TaskAssistantChat';
+import RAGTaskConsultant from '@/components/RAGTaskConsultant';
 import FriendsManagement from '@/components/FriendsManagement';
 import NotificationsPanel from '@/components/NotificationsPanel';
 import UserSkillsManager from '@/components/UserSkillsManager';
@@ -52,8 +52,8 @@ export default function VolunteerDashboard() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [friendsManagementOpen, setFriendsManagementOpen] = useState(false);
   const [skillsManagerOpen, setSkillsManagerOpen] = useState(false);
-  const [chatTask, setChatTask] = useState<Task | null>(null);
-  const [chatModalOpen, setChatModalOpen] = useState(false);
+  const [ragConsultantOpen, setRagConsultantOpen] = useState(false);
+  const [ragTask, setRagTask] = useState<Task | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -138,14 +138,14 @@ export default function VolunteerDashboard() {
     });
   };
 
-  const openChatModal = (task: Task) => {
-    setChatTask(task);
-    setChatModalOpen(true);
+  const openRAGConsultant = (task: Task) => {
+    setRagTask(task);
+    setRagConsultantOpen(true);
   };
 
-  const closeChatModal = () => {
-    setChatModalOpen(false);
-    setChatTask(null);
+  const closeRAGConsultant = () => {
+    setRagConsultantOpen(false);
+    setRagTask(null);
   };
 
   if (loading) {
@@ -307,7 +307,7 @@ export default function VolunteerDashboard() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openChatModal(task);
+                          openRAGConsultant(task);
                         }}
                       >
                         <Bot className="w-4 h-4 mr-1" />
@@ -481,20 +481,14 @@ export default function VolunteerDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Chat Modal */}
-      <Dialog open={chatModalOpen} onOpenChange={closeChatModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="w-5 h-5" />
-              AI-ассистент задачи "{chatTask?.title}"
-            </DialogTitle>
-          </DialogHeader>
-          {chatTask && (
-            <TaskAssistantChat task={chatTask} />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* RAG Task Consultant */}
+      {ragTask && (
+        <RAGTaskConsultant
+          task={ragTask}
+          isOpen={ragConsultantOpen}
+          onClose={closeRAGConsultant}
+        />
+      )}
 
       {/* Friends Management */}
       {friendsManagementOpen && currentUser && (
