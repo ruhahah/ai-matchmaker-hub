@@ -114,8 +114,6 @@ export default function OrganizerDashboard() {
   }, []);
 
   useEffect(() => {
-    loadTasks();
-    loadProfiles();
     
     // Запускаем фоновый AI-менеджер
     backgroundManager.start();

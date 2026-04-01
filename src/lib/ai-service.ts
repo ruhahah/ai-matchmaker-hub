@@ -331,7 +331,7 @@ export async function createTaskWithMatching(taskData: {
         return {
           task_id: task.id,
           volunteer_id: match.volunteer_id,
-          ai_score: match.similarity_score,
+          ai_score: match.score,
           ai_reason: explanation,
           status: 'pending' as const
         };

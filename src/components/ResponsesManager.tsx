@@ -62,7 +62,13 @@ export default function ResponsesManager({ taskId, taskTitle }: ResponsesManager
     const filteredResponses = responsesDatabase.getFilteredResponses(taskId, filters);
     setResponses(filteredResponses);
     
-    const taskStats = responsesDatabase.getTaskResponseStats(taskId);
+    const taskResponses = responsesDatabase.getTaskResponses(taskId);
+    const taskStats: any = {
+      total: taskResponses.length,
+      pending: taskResponses.filter(r => r.status === 'pending').length,
+      accepted: taskResponses.filter(r => r.status === 'accepted').length,
+      rejected: taskResponses.filter(r => r.status === 'rejected').length,
+    };
     setStats(taskStats);
   };
 
