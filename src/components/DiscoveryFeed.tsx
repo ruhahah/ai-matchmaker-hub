@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, MapPin, Clock, TrendingUp, Zap, CheckCircle, Star, Heart, Target } from 'lucide-react';
-import { getDemoProfile, updateDemoProfileRating, type DemoVolunteerProfile } from '@/lib/demoProfile';
+import { getDemoVolunteerProfile, updateDemoVolunteerProfile, type DemoVolunteerProfile } from '@/lib/demoProfile';
 import { aiTaskRecommendations, getProfiles, type TaskRecommendation } from '@/lib/mockApi';
 import AiMatchReason from '@/components/AiMatchReason';
 import { useToast } from '@/hooks/use-toast';
