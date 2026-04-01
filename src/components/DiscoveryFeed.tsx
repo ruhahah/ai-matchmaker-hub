@@ -55,7 +55,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
   const handleAcceptTask = async (taskId: string) => {
     try {
       // Simulate task acceptance
-      await updateDemoProfileRating((demoProfile?.rating || 0) + 0.1);
+      await updateDemoVolunteerProfile('vol-1', {});
       
       toast({
         title: '✅ Задача принята!',
