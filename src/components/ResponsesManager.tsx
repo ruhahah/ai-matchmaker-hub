@@ -59,7 +59,7 @@ export default function ResponsesManager({ taskId, taskTitle }: ResponsesManager
 
   const loadResponses = () => {
     const allResponses = responsesDatabase.getTaskResponses(taskId);
-    const filteredResponses = responsesDatabase.filterResponses(allResponses, filters);
+    const filteredResponses = responsesDatabase.getFilteredResponses(taskId, filters);
     setResponses(filteredResponses);
     
     const taskStats = responsesDatabase.getTaskResponseStats(taskId);

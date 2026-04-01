@@ -142,7 +142,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Target className="w-4 h-4 text-blue-600" />
-                      <span>Присоединился: {new Date(demoProfile.joinedAt || '').toLocaleDateString('ru-RU')}</span>
+                      <span>Выполнено часов: {demoProfile.totalHours}</span>
                     </div>
                   </div>
                 </div>
