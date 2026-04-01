@@ -217,7 +217,7 @@ export async function updateProfileWithAI(profileId: string, profileData: {
       avatar: '', // We'll need to add this field
       skills: result.skills,
       bio: result.bio || '',
-      role: result.user_role,
+      role: result.role as 'volunteer' | 'organizer',
     };
   } catch (error) {
     console.error('Update profile with AI error:', error);
