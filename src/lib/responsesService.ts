@@ -1,13 +1,55 @@
 import { Response, ResponseStats, ResponseFilters, ResponseNotification } from '@/types/responses';
 import { demoDatabase, type DemoProfile } from '@/lib/demoDatabase';
 
-// Mock база данных откликов
+// Mock база данных откликов с сохранением в localStorage
 class ResponsesDatabase {
-  private responses: Response[] = [];
-  private notifications: ResponseNotification[] = [];
+  private STORAGE_KEY = 'volunteer_responses';
+  private NOTIFICATIONS_KEY = 'volunteer_notifications';
+
+  private getStoredResponses(): Response[] {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      // Convert date strings back to Date objects
+      return parsed.map((r: any) => ({
+        ...r,
+        appliedAt: new Date(r.appliedAt),
+        reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : undefined
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private saveResponses(responses: Response[]): void {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(responses));
+  }
+
+  private getStoredNotifications(): ResponseNotification[] {
+    try {
+      const data = localStorage.getItem(this.NOTIFICATIONS_KEY);
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      // Convert date strings back to Date objects
+      return parsed.map((n: any) => ({
+        ...n,
+        createdAt: new Date(n.createdAt)
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  private saveNotifications(notifications: ResponseNotification[]): void {
+    localStorage.setItem(this.NOTIFICATIONS_KEY, JSON.stringify(notifications));
+  }
 
   constructor() {
-    this.initializeMockData();
+    // Initialize with mock data if localStorage is empty
+    if (!localStorage.getItem(this.STORAGE_KEY)) {
+      this.initializeMockData();
+    }
   }
 
   private initializeMockData() {
@@ -52,7 +94,7 @@ class ResponsesDatabase {
       }
     ];
 
-    this.responses = mockResponses;
+    this.saveResponses(mockResponses);
 
     // Создаем моковые уведомления
     const mockNotifications: ResponseNotification[] = [
@@ -74,7 +116,7 @@ class ResponsesDatabase {
       }
     ];
 
-    this.notifications = mockNotifications;
+    this.saveNotifications(mockNotifications);
   }
 
   // Создать уведомление для организатора (public)
@@ -104,7 +146,9 @@ class ResponsesDatabase {
       actionUrl: `/tasks/${data.taskId}`
     };
 
-    this.notifications.push(notification);
+    const notifications = this.getStoredNotifications();
+    notifications.push(notification);
+    this.saveNotifications(notifications);
   }
 
   // Создать уведомление для волонтера (public)
@@ -133,38 +177,43 @@ class ResponsesDatabase {
       actionUrl: `/tasks/${data.taskId}`
     };
 
-    this.notifications.push(notification);
+    const notifications = this.getStoredNotifications();
+    notifications.push(notification);
+    this.saveNotifications(notifications);
   }
 
   // Получить все отклики (public)
   getAllResponses(): Response[] {
-    return this.responses;
+    return this.getStoredResponses();
   }
 
   // Получить отклики волонтера (public)
   getVolunteerResponses(volunteerId: string): Response[] {
-    return this.responses.filter(response => response.volunteerId === volunteerId);
+    return this.getStoredResponses().filter(response => response.volunteerId === volunteerId);
   }
 
   // Получить все отклики для задачи
   getTaskResponses(taskId: string): Response[] {
-    return this.responses.filter(response => response.taskId === taskId);
+    return this.getStoredResponses().filter(response => response.taskId === taskId);
   }
 
   // Получить отклик по ID
   getResponseById(responseId: string): Response | undefined {
-    return this.responses.find(response => response.id === responseId);
+    return this.getStoredResponses().find(response => response.id === responseId);
   }
 
   // Создать новый отклик
   createResponse(responseData: Omit<Response, 'id' | 'appliedAt'>): Response {
+    const responses = this.getStoredResponses();
+    
     const newResponse: Response = {
       ...responseData,
       id: `resp-${Date.now()}`,
       appliedAt: new Date()
     };
 
-    this.responses.push(newResponse);
+    responses.push(newResponse);
+    this.saveResponses(responses);
 
     // Создаем уведомление для организатора
     this.createOrganizerNotification({
@@ -181,19 +230,22 @@ class ResponsesDatabase {
 
   // Обновить статус отклика
   updateResponseStatus(responseId: string, status: Response['status'], reviewMessage?: string, organizerId?: string): Response | null {
-    const responseIndex = this.responses.findIndex(response => response.id === responseId);
+    const responses = this.getStoredResponses();
+    const responseIndex = responses.findIndex(response => response.id === responseId);
     if (responseIndex === -1) return null;
 
-    const oldStatus = this.responses[responseIndex].status;
-    this.responses[responseIndex] = {
-      ...this.responses[responseIndex],
+    const oldStatus = responses[responseIndex].status;
+    responses[responseIndex] = {
+      ...responses[responseIndex],
       status,
       reviewedAt: new Date(),
       reviewedBy: organizerId,
       reviewMessage
     };
 
-    const response = this.responses[responseIndex];
+    this.saveResponses(responses);
+    
+    const response = responses[responseIndex];
 
     // Создаем уведомления в зависимости от нового статуса
     if (oldStatus === 'pending' && status === 'accepted') {
@@ -236,23 +288,25 @@ class ResponsesDatabase {
 
   // Получить уведомления для организатора
   getNotificationsForOrganizer(organizerId: string): ResponseNotification[] {
-    return this.notifications
+    return this.getStoredNotifications()
       .filter(notif => notif.recipientId === organizerId && notif.recipientRole === 'organizer')
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   // Получить уведомления для волонтера
   getNotificationsForVolunteer(volunteerId: string): ResponseNotification[] {
-    return this.notifications
+    return this.getStoredNotifications()
       .filter(notif => notif.recipientId === volunteerId && notif.recipientRole === 'volunteer')
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   // Отметить уведомление как прочитанное
   markNotificationAsRead(notificationId: string): boolean {
-    const notification = this.notifications.find(n => n.id === notificationId);
+    const notifications = this.getStoredNotifications();
+    const notification = notifications.find(n => n.id === notificationId);
     if (notification) {
       notification.read = true;
+      this.saveNotifications(notifications);
       return true;
     }
     return false;
@@ -260,7 +314,7 @@ class ResponsesDatabase {
 
   // Получить количество непрочитанных уведомлений
   getUnreadCount(userId: string, role: 'organizer' | 'volunteer'): number {
-    return this.notifications
+    return this.getStoredNotifications()
       .filter(notif => notif.recipientId === userId && notif.recipientRole === role && !notif.read)
       .length;
   }
@@ -291,7 +345,7 @@ class ResponsesDatabase {
 
   // Статистика откликов
   getResponseStats(taskId?: string): ResponseStats {
-    const responses = taskId ? this.getTaskResponses(taskId) : this.responses;
+    const responses = taskId ? this.getTaskResponses(taskId) : this.getStoredResponses();
     
     return {
       total: responses.length,
