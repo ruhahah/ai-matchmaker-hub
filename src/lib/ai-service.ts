@@ -365,7 +365,7 @@ export async function updateProfileWithEmbedding(profileId: string, profileData:
   skills?: string[];
 }) {
   try {
-    const { supabase, updateProfileEmbedding } = await import('./supabase');
+    const { updateProfileEmbedding } = await import('./supabase');
     
     // Update profile data
     const { data: profile, error: updateError } = await supabase
