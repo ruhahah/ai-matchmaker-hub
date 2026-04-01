@@ -1516,11 +1516,7 @@ export default function OrganizerDashboard() {
                                   [matchId]: { ...prev[matchId], invited: true }
                                 }));
                                 toast({
-<<<<<<< HEAD
-                                  title: '� Приглашение отправлено',
-=======
                                   title: '📧 Приглашение отправлено',
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
                                   description: `${match.profile.name} получит уведомление о задаче`,
                                 });
                               }}
