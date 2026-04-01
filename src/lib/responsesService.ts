@@ -136,6 +136,16 @@ class ResponsesDatabase {
     this.notifications.push(notification);
   }
 
+  // Получить все отклики (public)
+  getAllResponses(): Response[] {
+    return this.responses;
+  }
+
+  // Получить отклики волонтера (public)
+  getVolunteerResponses(volunteerId: string): Response[] {
+    return this.responses.filter(response => response.volunteerId === volunteerId);
+  }
+
   // Получить все отклики для задачи
   getTaskResponses(taskId: string): Response[] {
     return this.responses.filter(response => response.taskId === taskId);

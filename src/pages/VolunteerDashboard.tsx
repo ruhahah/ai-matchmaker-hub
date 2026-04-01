@@ -161,13 +161,14 @@ export default function VolunteerDashboard() {
 
       // Загружаем отклики пользователя
       if (volunteer) {
-        const responses = responsesDatabase.getNotificationsForVolunteer(volunteer.id);
-        const appliedIds = new Set(
-          responses
-            .filter(r => r.type === 'response_accepted')
-            .map(r => r.taskId)
-        );
+        // Получаем отклики волонтера через публичный метод
+        const userResponses = responsesDatabase.getVolunteerResponses(volunteer.id);
+        
+        // Создаем Set из ID задач, на которые пользователь откликнулся
+        const appliedIds = new Set(userResponses.map(r => r.taskId));
         setAppliedTasks(appliedIds);
+        
+        console.log('Loaded user responses:', userResponses.length, 'applied tasks:', appliedIds.size);
       }
 
     } catch (error) {
@@ -192,29 +193,75 @@ export default function VolunteerDashboard() {
       return;
     }
 
-    // Создаем отклик на задачу
-    const response = responsesDatabase.createResponse({
-      taskId,
-      volunteerId: currentUser.id,
-      volunteerName: currentUser.name,
-      volunteerEmail: currentUser.email,
-      volunteerAvatar: currentUser.avatar,
-      status: 'pending',
-      message: 'Хочу принять участие в этой задаче!',
-      matchingScore: 0.85,
-      hardSkills: currentUser.skills || [],
-      softSkills: [],
-      experience: 'Активный волонтер',
-      availability: 'flexible',
-      motivation: 'Хочу помогать сообществу'
-    });
+    // Проверяем, не откликался ли уже пользователь
+    if (appliedTasks.has(taskId)) {
+      toast({
+        title: 'Уже откликнулись',
+        description: 'Вы уже откликнулись на эту задачу',
+        variant: 'destructive'
+      });
+      return;
+    }
 
-    setAppliedTasks(prev => new Set(prev).add(taskId));
-    
-    toast({
-      title: 'Отклик отправлен!',
-      description: 'Вы откликнулись на задачу. Ожидайте ответа организатора.',
-    });
+    try {
+      // Находим задачу для получения информации
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        toast({
+          title: 'Ошибка',
+          description: 'Задача не найдена',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Создаем отклик на задачу с улучшенными данными
+      const response = responsesDatabase.createResponse({
+        taskId,
+        volunteerId: currentUser.id,
+        volunteerName: currentUser.name,
+        volunteerEmail: currentUser.email,
+        volunteerAvatar: currentUser.avatar,
+        status: 'pending',
+        message: `Привет! Я хочу принять участие в задаче "${task.title}". Мои навыки: ${(currentUser.skills || []).join(', ')}. Готов начать в указанное время!`,
+        matchingScore: 0.85,
+        hardSkills: currentUser.skills || [],
+        softSkills: ['Коммуникация', 'Ответственность', 'Командная работа'],
+        experience: 'Активный волонтер с опытом в различных проектах',
+        availability: 'flexible',
+        motivation: 'Хочу применять свои навыки для помощи сообществу и получения нового опыта'
+      });
+
+      // Добавляем задачу в список откликов
+      setAppliedTasks(prev => new Set(prev).add(taskId));
+      
+      // Создаем уведомление для организатора
+      responsesDatabase.createNotification({
+        organizerId: task.creatorId,
+        taskId: taskId,
+        volunteerId: currentUser.id,
+        volunteerName: currentUser.name,
+        volunteerAvatar: currentUser.avatar,
+        type: 'new_response',
+        message: `Новый отклик от ${currentUser.name} на задачу "${task.title}"`,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log('Response created:', response);
+      
+      toast({
+        title: '✅ Отклик отправлен!',
+        description: `Вы откликнулись на "${task.title}". Организатор уведомлен.`,
+      });
+
+    } catch (error) {
+      console.error('Error creating response:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить отклик. Попробуйте еще раз.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const openRAGConsultant = (task: Task) => {
@@ -406,36 +453,86 @@ export default function VolunteerDashboard() {
             </div>
           ) : (
             <div className="grid gap-4">
-              {tasks.filter(task => appliedTasks.has(task.id)).map((task, i) => (
-                <Card key={task.id} className="border-green-200 bg-green-50/50">
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-display font-semibold">{task.title}</h3>
-                          <Badge className="bg-green-100 text-green-700 border-green-200">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Отклик отправлен
-                          </Badge>
+              {tasks.filter(task => appliedTasks.has(task.id)).map((task, i) => {
+                // Получаем информацию об отклике
+                const userResponse = currentUser ? responsesDatabase.getVolunteerResponses(currentUser.id).find(
+                  r => r.taskId === task.id
+                ) : null;
+                
+                return (
+                  <Card key={task.id} className="border-green-200 bg-green-50/50">
+                    <CardContent className="p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display font-semibold">{task.title}</h3>
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              {userResponse?.status === 'accepted' ? 'Принято' : 
+                               userResponse?.status === 'rejected' ? 'Отклонено' : 'На рассмотрении'}
+                            </Badge>
+                            {task.urgency === 'high' && (
+                              <Badge variant="destructive" className="text-xs">
+                                Срочно
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                            <MapPin className="h-3 w-3" />
+                            {task.location}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {task.startTime}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3" />
-                          {task.location}
+                        <div className="text-right">
+                          <div className="text-xs text-muted-foreground">
+                            Отклик отправлен
+                          </div>
+                          <div className="text-xs font-medium">
+                            {userResponse ? new Date(userResponse.appliedAt).toLocaleDateString('ru-RU') : 'Сегодня'}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <p className="text-sm text-muted-foreground">
-                      {task.description}
-                    </p>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {task.description}
+                      </p>
 
-                    <div className="flex items-center gap-2 text-sm text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Ожидайте ответа от организатора
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      {/* Показываем сообщение отклика */}
+                      {userResponse?.message && (
+                        <div className="bg-white/50 rounded-lg p-3 border border-green-200">
+                          <div className="text-xs text-green-700 font-medium mb-1">Ваше сообщение:</div>
+                          <p className="text-sm text-gray-700">{userResponse.message}</p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle2 className="h-4 w-4" />
+                          {userResponse?.status === 'accepted' ? 'Организатор принял ваш отклик!' :
+                           userResponse?.status === 'rejected' ? 'Отклонено организатором' :
+                           'Ожидайте ответа от организатора'}
+                        </div>
+                        
+                        {/* Кнопка AI-консультанта */}
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRAGConsultant(task);
+                          }}
+                        >
+                          <Bot className="w-4 h-4 mr-1" />
+                          Вопрос
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
