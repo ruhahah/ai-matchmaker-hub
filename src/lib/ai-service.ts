@@ -289,7 +289,9 @@ export async function createTaskWithMatching(taskData: {
 }) {
   try {
     // Import Supabase client
-    const { updateTaskEmbedding, matchVolunteers, createApplication } = await import('./supabase');
+    const supabaseModule = await import('./supabase');
+    const { updateTaskEmbedding, matchVolunteers, createApplication } = supabaseModule;
+    const { supabase } = await import('@/integrations/supabase/client');
     
     // Generate embedding for the task
     const embeddingText = `${taskData.title} ${taskData.description} ${taskData.skills.join(' ')}`;
