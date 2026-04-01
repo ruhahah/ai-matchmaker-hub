@@ -121,7 +121,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
                     ))}
                   </div>
                   <span className="text-sm text-gray-600">
-                    Рейтинг: {demoProfile.rating?.toFixed(1)}/5.0
+                    Рейтинг: {(demoProfile.completedTasks / 5).toFixed(1)}/5.0
                   </span>
                 </div>
                 <p className="text-sm text-gray-700 leading-relaxed">
