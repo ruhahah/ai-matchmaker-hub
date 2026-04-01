@@ -803,11 +803,7 @@ export default function VolunteerDashboard() {
             </DialogTitle>
           </DialogHeader>
           {selectedTask && (
-<<<<<<< HEAD
             <RAGTaskAssistantChat task={selectedTask} />
-=======
-            <TaskAssistantChat task={selectedTask} />
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
           )}
         </DialogContent>
       </Dialog>
