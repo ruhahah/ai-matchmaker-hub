@@ -7,12 +7,13 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
 import PWAProvider from "@/components/PWAProvider";
 import { pushNotifications } from "@/lib/pushNotifications";
+import "@/lib/videoDemoData"; // Импортируем демо-данные для видео
 import RoleSelect from "@/pages/RoleSelect";
 import OrganizerDashboard from "@/pages/OrganizerDashboard";
-import VolunteerDashboard from "@/pages/VolunteerDashboard";
+// import VolunteerDashboard from "@/pages/VolunteerDashboard"; // TODO: Создать этот компонент
 import VolunteerProfile from "@/pages/VolunteerProfile";
+import DemoDataManager from "@/components/DemoDataManager";
 import NotFound from "./pages/NotFound.tsx";
-import DemoShowcase from "@/components/DemoShowcase";
 import React from "react";
 
 const queryClient = new QueryClient();
@@ -38,9 +39,9 @@ function AppRoutes() {
       <AppHeader />
       <Routes>
         <Route path="/organizer" element={role === 'organizer' ? <OrganizerDashboard /> : <Navigate to={`/${role}`} />} />
-        <Route path="/volunteer" element={role === 'volunteer' ? <VolunteerDashboard /> : <Navigate to={`/${role}`} />} />
+        <Route path="/volunteer" element={role === 'volunteer' ? <VolunteerProfile /> : <Navigate to={`/${role}`} />} />
         <Route path="/volunteer/profile" element={role === 'volunteer' ? <VolunteerProfile /> : <Navigate to={`/${role}`} />} />
-        <Route path="/demo" element={<DemoShowcase />} />
+        <Route path="/demo" element={<DemoDataManager />} />
         <Route path="/" element={<Navigate to={`/${role}`} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

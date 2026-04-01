@@ -24,6 +24,15 @@ class DemoDatabase {
   private saveData(data: any) {
     localStorage.setItem(this.storageKey, JSON.stringify(data));
   }
+
+  // Публичные методы для доступа к данным (для демо-данных)
+  public getDataForDemo() {
+    return this.getData();
+  }
+  
+  public saveDataForDemo(data: any) {
+    this.saveData(data);
+  }
   
   // Задачи
   getTasks() {
