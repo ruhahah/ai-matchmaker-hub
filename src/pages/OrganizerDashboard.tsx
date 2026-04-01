@@ -107,7 +107,7 @@ export default function OrganizerDashboard() {
     setLoading(false);
     
     // Загружаем количество непрочитанных уведомлений
-    setUnreadNotifications(responsesDatabase.getUnreadCount('org-1'));
+    setUnreadNotifications(responsesDatabase.getUnreadCount('org-1', 'organizer'));
     
     // Загружаем все отклики для вкладки откликов
     loadAllResponses();
