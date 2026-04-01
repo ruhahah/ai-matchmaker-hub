@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users, Bell, Calendar, Award } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users, Bell, Calendar, Award, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { demoDatabase } from '@/lib/demoDatabase';
 import { friendsService } from '@/lib/friendsService';
@@ -49,12 +49,21 @@ export default function VolunteerDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [appliedTasks, setAppliedTasks] = useState<Set<string>>(new Set());
+  const [inProgressTasks, setInProgressTasks] = useState<Set<string>>(new Set());
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [friendsManagementOpen, setFriendsManagementOpen] = useState(false);
   const [skillsManagerOpen, setSkillsManagerOpen] = useState(false);
   const [ragConsultantOpen, setRagConsultantOpen] = useState(false);
   const [ragTask, setRagTask] = useState<Task | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  // State for photo proof upload
+  const [proofDialogOpen, setProofDialogOpen] = useState(false);
+  const [selectedTaskForProof, setSelectedTaskForProof] = useState<Task | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -165,10 +174,21 @@ export default function VolunteerDashboard() {
         const userResponses = responsesDatabase.getVolunteerResponses(volunteer.id);
         
         // Создаем Set из ID задач, на которые пользователь откликнулся
-        const appliedIds = new Set(userResponses.map(r => r.taskId));
+        const appliedIds = new Set(userResponses.filter(r => r.status === 'pending').map(r => r.taskId));
         setAppliedTasks(appliedIds);
         
-        console.log('Loaded user responses:', userResponses.length, 'applied tasks:', appliedIds.size);
+        // Загружаем задачи в процессе и завершенные из localStorage
+        const storedInProgress = localStorage.getItem(`inProgress_${volunteer.id}`);
+        const storedCompleted = localStorage.getItem(`completed_${volunteer.id}`);
+        
+        if (storedInProgress) {
+          setInProgressTasks(new Set(JSON.parse(storedInProgress)));
+        }
+        if (storedCompleted) {
+          setCompletedTasks(new Set(JSON.parse(storedCompleted)));
+        }
+        
+        console.log('Loaded user responses:', userResponses.length, 'applied:', appliedIds.size, 'inProgress:', storedInProgress ? JSON.parse(storedInProgress).length : 0);
       }
 
     } catch (error) {
@@ -273,6 +293,102 @@ export default function VolunteerDashboard() {
     setRagTask(null);
   };
 
+  // Open photo proof dialog
+  const openProofDialog = (task: Task) => {
+    setSelectedTaskForProof(task);
+    setSelectedPhoto(null);
+    setVerificationResult(null);
+    setProofDialogOpen(true);
+  };
+
+  // Handle photo selection
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedPhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Submit photo for Vision API verification
+  const handleSubmitProof = async () => {
+    if (!selectedPhoto || !selectedTaskForProof || !currentUser) return;
+
+    setIsVerifying(true);
+    try {
+      // Import the vision verification function
+      const { aiVisionVerify } = await import('@/lib/ai-service');
+      
+      // Extract base64 data from data URL
+      const base64Data = selectedPhoto.split(',')[1];
+      
+      // Call Vision API
+      const result = await aiVisionVerify(base64Data, selectedTaskForProof.description, selectedTaskForProof.title);
+      
+      setVerificationResult(result);
+      
+      if (result.status === 'approved') {
+        // Move task from inProgress to completed
+        setInProgressTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(selectedTaskForProof.id);
+          return newSet;
+        });
+        setCompletedTasks(prev => new Set(prev).add(selectedTaskForProof.id));
+        
+        // Save to localStorage
+        localStorage.setItem(`completed_${currentUser.id}`, JSON.stringify([...completedTasks, selectedTaskForProof.id]));
+        localStorage.setItem(`inProgress_${currentUser.id}`, JSON.stringify([...inProgressTasks].filter(id => id !== selectedTaskForProof.id)));
+        
+        toast({
+          title: '✅ Задача завершена!',
+          description: 'AI подтвердил выполнение задачи.',
+        });
+        
+        // Close dialog after short delay
+        setTimeout(() => setProofDialogOpen(false), 2000);
+      } else {
+        toast({
+          title: '❌ Фото не подтверждено',
+          description: result.reason,
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      toast({
+        title: 'Ошибка верификации',
+        description: 'Не удалось проверить фото. Попробуйте еще раз.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // Start task (move from applied to in_progress)
+  const handleStartTask = (taskId: string) => {
+    setAppliedTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskId);
+      return newSet;
+    });
+    setInProgressTasks(prev => new Set(prev).add(taskId));
+    
+    // Save to localStorage
+    if (currentUser) {
+      localStorage.setItem(`inProgress_${currentUser.id}`, JSON.stringify([...inProgressTasks, taskId]));
+    }
+    
+    toast({
+      title: '🚀 Задача начата!',
+      description: 'Теперь задача в разделе "В процессе". Загрузите фото по завершении.',
+    });
+  };
+
   if (loading) {
     return (
       <div className="container max-w-4xl py-8">
@@ -329,19 +445,26 @@ export default function VolunteerDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="tasks" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="tasks" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             Задачи
             <Badge variant="secondary" className="text-xs">
-              {tasks.filter(t => !appliedTasks.has(t.id)).length}
+              {tasks.filter(t => !appliedTasks.has(t.id) && !inProgressTasks.has(t.id) && !completedTasks.has(t.id)).length}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="applied" className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            Мои отклики
+            Отклики
             <Badge variant="secondary" className="text-xs">
               {appliedTasks.size}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="inprogress" className="flex items-center gap-2">
+            <PlayCircle className="w-4 h-4" />
+            В процессе
+            <Badge variant="secondary" className="text-xs">
+              {inProgressTasks.size}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="friends" className="flex items-center gap-2">
@@ -515,23 +638,113 @@ export default function VolunteerDashboard() {
                            'Ожидайте ответа от организатора'}
                         </div>
                         
-                        {/* Кнопка AI-консультанта */}
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openRAGConsultant(task);
-                          }}
-                        >
-                          <Bot className="w-4 h-4 mr-1" />
-                          Вопрос
-                        </Button>
+                        {/* Кнопки действий */}
+                        <div className="flex gap-2">
+                          {userResponse?.status === 'accepted' && (
+                            <Button 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartTask(task.id);
+                              }}
+                            >
+                              <PlayCircle className="w-4 h-4 mr-1" />
+                              Начать
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openRAGConsultant(task);
+                            }}
+                          >
+                            <Bot className="w-4 h-4 mr-1" />
+                            Вопрос
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* In Progress Tasks */}
+        <TabsContent value="inprogress" className="space-y-4">
+          {inProgressTasks.size === 0 ? (
+            <div className="text-center py-16">
+              <PlayCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-600 mb-4">Нет задач в процессе</p>
+              <p className="text-sm text-gray-500">Начните задачу из раздела "Отклики", чтобы увидеть её здесь</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {tasks.filter(task => inProgressTasks.has(task.id)).map((task, i) => (
+                <Card key={task.id} className="border-blue-200 bg-blue-50/50">
+                  <CardContent className="p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-display font-semibold">{task.title}</h3>
+                          <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                            <PlayCircle className="h-3 w-3 mr-1" />
+                            В процессе
+                          </Badge>
+                          {task.urgency === 'high' && (
+                            <Badge variant="destructive" className="text-xs">
+                              Срочно
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                          <MapPin className="h-3 w-3" />
+                          {task.location}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {task.startTime}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {task.description}
+                    </p>
+
+                    <div className="bg-blue-100/50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-center gap-2 text-sm text-blue-700">
+                        <Camera className="h-4 w-4" />
+                        <span className="font-medium">Требуется фото-подтверждение</span>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Загрузите фото выполненной работы для завершения задачи. AI проверит соответствие заданию.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-blue-600">
+                        <PlayCircle className="h-4 w-4" />
+                        Выполните задачу и загрузите фото
+                      </div>
+                      
+                      <Button 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openProofDialog(task);
+                        }}
+                      >
+                        <Camera className="w-4 h-4 mr-1" />
+                        Загрузить фото
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -668,6 +881,114 @@ export default function VolunteerDashboard() {
         userRole="volunteer"
         userId={currentUser?.id || 'vol-1'}
       />
+
+      {/* Photo Proof Upload Dialog */}
+      <Dialog open={proofDialogOpen} onOpenChange={setProofDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Подтверждение выполнения
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Задача: <span className="font-medium">{selectedTaskForProof?.title}</span>
+            </p>
+            
+            {!selectedPhoto ? (
+              <div className="space-y-3">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label 
+                    htmlFor="photo-upload"
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    <Upload className="w-8 h-8 text-gray-400" />
+                    <span className="text-sm text-gray-600">Нажмите для загрузки фото</span>
+                    <span className="text-xs text-gray-400">или перетащите файл сюда</span>
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Загрузите фото выполненной работы. AI проверит соответствие описанию задачи.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative">
+                  <img 
+                    src={selectedPhoto} 
+                    alt="Preview" 
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <button
+                    onClick={() => setSelectedPhoto(null)}
+                    className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white hover:bg-black/70"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {verificationResult && (
+                  <div className={`p-3 rounded-lg ${
+                    verificationResult.status === 'approved' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {verificationResult.status === 'approved' ? (
+                        <CheckCircle2 className="w-5 h-5" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5" />
+                      )}
+                      <span className="font-medium">
+                        {verificationResult.status === 'approved' ? 'Подтверждено!' : 'Не подтверждено'}
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1">{verificationResult.reason}</p>
+                    <p className="text-xs mt-1 opacity-75">
+                      Уверенность: {Math.round(verificationResult.confidence * 100)}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setProofDialogOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button 
+                className="flex-1"
+                onClick={handleSubmitProof}
+                disabled={!selectedPhoto || isVerifying}
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Проверка...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-4 h-4 mr-2" />
+                    Проверить фото
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

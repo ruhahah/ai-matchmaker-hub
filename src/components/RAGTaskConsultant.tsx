@@ -41,11 +41,6 @@ export default function RAGTaskConsultant({ task, isOpen, onClose }: RAGTaskCons
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const openai = new OpenAI({
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true
-  });
-
   // Инициализация при открытии
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -178,7 +173,8 @@ export default function RAGTaskConsultant({ task, isOpen, onClose }: RAGTaskCons
       // Шаг 3: Генерация ответа на основе извлеченной информации
       const openai = new OpenAI({
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
+        maxRetries: 0
       });
 
       const systemPrompt = `Ты - AI-консультант по волонтерским задачам. Твоя задача - отвечать на вопросы волонтеров ТОЛЬКО на основе предоставленной информации о задаче.
