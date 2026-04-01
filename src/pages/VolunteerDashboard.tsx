@@ -660,12 +660,8 @@ export default function VolunteerDashboard() {
           </div>
           {selectedTask?.requiredVolunteers && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-<<<<<<< HEAD
               <Users className="h-3 w-3" /> Нужно: {selectedTask.requiredVolunteers} {selectedTask.requiredVolunteers === 1 ? 'волонтер' : 
                 selectedTask.requiredVolunteers > 1 && selectedTask.requiredVolunteers < 5 ? 'волонтера' : 'волонтеров'}
-=======
-              <Users className="h-3 w-3" /> Нужно: {selectedTask.requiredVolunteers} волонтеров
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
             </div>
           )}
           <div className="flex flex-wrap gap-1.5 my-2">
