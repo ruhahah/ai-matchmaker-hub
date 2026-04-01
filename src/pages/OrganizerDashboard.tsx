@@ -83,7 +83,6 @@ export default function OrganizerDashboard() {
   });
 
   useEffect(() => {
-<<<<<<< HEAD
     // Используем demoDatabase для получения пользователей и задач
     const allUsers = demoDatabase.getUsers();
     const volunteerUsers = allUsers.filter(user => user.role === 'volunteer');
@@ -112,17 +111,6 @@ export default function OrganizerDashboard() {
     
     // Загружаем все отклики для вкладки откликов
     loadAllResponses();
-=======
-    // Используем demoDatabase для получения пользователей
-    const allUsers = demoDatabase.getUsers();
-    const volunteerUsers = allUsers.filter(user => user.role === 'volunteer');
-    
-    Promise.all([getTasks('organizer')]).then(([t]) => {
-      setTasks(t);
-      setProfiles(volunteerUsers);
-      setLoading(false);
-    });
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
   }, []);
 
   useEffect(() => {
