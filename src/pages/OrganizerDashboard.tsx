@@ -15,11 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Plus, Eye, Edit, Users, Sparkles, UserPlus, CheckCircle, MapPin, Star, Clock, Target, TrendingUp, Bot, Filter, ArrowUpDown, Mail, Bell, MessageSquare, Calendar, Award, XCircle, ChevronRight } from 'lucide-react';
 import { getTasks, getProfiles, aiSemanticMatching, type Task, type Profile, type MatchingResult } from '@/lib/mockApi';
-<<<<<<< HEAD
 import { demoDatabase, type DemoProfile } from '@/lib/demoDatabase';
-=======
-import { demoDatabase, type DemoProfile } from '@/lib/demoDatabaseFixed';
->>>>>>> ae576bd18cd0e3f15cf669c1ba40a3faca514ab1
 import { useToast } from '@/hooks/use-toast';
 import AiTaskInterviewer from '@/components/AiTaskInterviewer';
 import { TaskData } from '@/lib/aiTaskInterview';
