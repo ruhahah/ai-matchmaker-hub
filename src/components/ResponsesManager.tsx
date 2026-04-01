@@ -75,7 +75,7 @@ export default function ResponsesManager({ taskId, taskTitle }: ResponsesManager
   const loadNotifications = () => {
     const allNotifications = responsesDatabase.getNotificationsForOrganizer('org-1');
     setNotifications(allNotifications);
-    setUnreadCount(responsesDatabase.getUnreadCount('org-1'));
+    setUnreadCount(responsesDatabase.getUnreadCount('org-1', 'organizer'));
   };
 
   const handleStatusUpdate = (responseId: string, status: Response['status']) => {
