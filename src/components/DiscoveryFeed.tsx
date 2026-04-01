@@ -41,7 +41,7 @@ export default function DiscoveryFeed({ tasks, loading }: DiscoveryFeedProps) {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const profile = await getDemoProfile();
+      const profile = await getDemoVolunteerProfile('vol-1');
       setDemoProfile(profile);
     };
 
