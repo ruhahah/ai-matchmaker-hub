@@ -153,6 +153,16 @@ export default function RAGTaskConsultant({ task, isOpen, onClose }: RAGTaskCons
 
   // Генерация ответа с использованием RAG
   const generateRAGResponse = async (query: string): Promise<{ content: string; sources: string[] }> => {
+    // Проверяем наличие API ключа
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (!apiKey) {
+      console.error('OpenAI API key not found');
+      return {
+        content: '❌ *API ключ не настроен.*\n\nПожалуйста, проверьте настройки приложения.',
+        sources: []
+      };
+    }
+
     try {
       // Шаг 1: Извлечение релевантной информации
       const { info, sources } = extractRelevantInfo(query);
@@ -166,6 +176,11 @@ export default function RAGTaskConsultant({ task, isOpen, onClose }: RAGTaskCons
       }
 
       // Шаг 3: Генерация ответа на основе извлеченной информации
+      const openai = new OpenAI({
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true
+      });
+
       const systemPrompt = `Ты - AI-консультант по волонтерским задачам. Твоя задача - отвечать на вопросы волонтеров ТОЛЬКО на основе предоставленной информации о задаче.
 
 Правила:
@@ -198,6 +213,8 @@ ${info}
         ],
         temperature: 0.3,
         max_tokens: 500
+      }, {
+        timeout: 10000 // 10 second timeout to prevent hanging
       });
 
       const response = completion.choices[0]?.message?.content || 'Извините, не удалось сгенерировать ответ.';
@@ -207,10 +224,11 @@ ${info}
         sources
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('RAG response generation error:', error);
+      // Graceful error handling without crashing UI
       return {
-        content: '❌ *Произошла ошибка при обработке запроса.*\n\nПожалуйста, попробуйте еще раз.',
+        content: `❌ *Произошла ошибка при обработке запроса.*\n\n${error?.message?.includes('API key') ? 'Проблема с API ключом. ' : ''}Попробуйте еще раз или обратитесь к организатору напрямую.`,
         sources: []
       };
     }

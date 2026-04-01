@@ -236,15 +236,14 @@ export default function VolunteerDashboard() {
       setAppliedTasks(prev => new Set(prev).add(taskId));
       
       // Создаем уведомление для организатора
-      responsesDatabase.createNotification({
-        organizerId: task.creatorId,
+      responsesDatabase.createOrganizerNotification({
+        type: 'new_response',
         taskId: taskId,
+        taskTitle: task.title,
         volunteerId: currentUser.id,
         volunteerName: currentUser.name,
-        volunteerAvatar: currentUser.avatar,
-        type: 'new_response',
         message: `Новый отклик от ${currentUser.name} на задачу "${task.title}"`,
-        timestamp: new Date().toISOString()
+        priority: 'high'
       });
       
       console.log('Response created:', response);

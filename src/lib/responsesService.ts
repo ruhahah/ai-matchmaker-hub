@@ -77,8 +77,8 @@ class ResponsesDatabase {
     this.notifications = mockNotifications;
   }
 
-  // Создать уведомление для организатора
-  private createOrganizerNotification(data: {
+  // Создать уведомление для организатора (public)
+  public createOrganizerNotification(data: {
     type: ResponseNotification['type'];
     taskId: string;
     taskTitle: string;
