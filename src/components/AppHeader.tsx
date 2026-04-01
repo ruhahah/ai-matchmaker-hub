@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, Sun } from 'lucide-react';
+import { LogOut, Sun, Play } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function AppHeader() {
   const { role, logout } = useAuth();
@@ -20,6 +21,12 @@ export function AppHeader() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link to="/demo">
+            <Button variant="outline" size="sm" className="gap-2 border-purple-200 text-purple-600 hover:bg-purple-50">
+              <Play className="h-4 w-4" />
+              Демо
+            </Button>
+          </Link>
           <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold capitalize text-accent-foreground">
             {role}
           </span>

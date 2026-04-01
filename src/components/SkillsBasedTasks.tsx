@@ -15,7 +15,8 @@ import {
   Clock,
   MapPin,
   Users,
-  Zap
+  Zap,
+  Bot
 } from 'lucide-react';
 import { SkillsMatchingService, SkillMatchResult } from '@/lib/skillsMatching';
 import { DemoTask } from '@/lib/demoDatabaseFixed';
@@ -24,9 +25,11 @@ import { demoDatabase } from '@/lib/demoDatabaseFixed';
 interface SkillsBasedTasksProps {
   userId: string;
   onTaskSelect?: (task: DemoTask) => void;
+  appliedTasks?: Set<string>;
+  externalTasks?: DemoTask[];
 }
 
-export default function SkillsBasedTasks({ userId, onTaskSelect }: SkillsBasedTasksProps) {
+export default function SkillsBasedTasks({ userId, onTaskSelect, appliedTasks, externalTasks }: SkillsBasedTasksProps) {
   const [tasks, setTasks] = useState<DemoTask[]>([]);
   const [recommendedTasks, setRecommendedTasks] = useState<SkillMatchResult[]>([]);
   const [learningTasks, setLearningTasks] = useState<SkillMatchResult[]>([]);
@@ -35,7 +38,7 @@ export default function SkillsBasedTasks({ userId, onTaskSelect }: SkillsBasedTa
   const [activeTab, setActiveTab] = useState<'recommended' | 'learning' | 'all'>('recommended');
 
   useEffect(() => {
-    const allTasks = demoDatabase.getTasks();
+    const allTasks = externalTasks || demoDatabase.getTasks();
     setTasks(allTasks);
     
     const recommended = SkillsMatchingService.getRecommendedTasks(userId, allTasks, 10);
@@ -43,7 +46,7 @@ export default function SkillsBasedTasks({ userId, onTaskSelect }: SkillsBasedTa
     
     const learning = SkillsMatchingService.getLearningTasks(userId, allTasks, 5);
     setLearningTasks(learning);
-  }, [userId]);
+  }, [userId, externalTasks]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -75,7 +78,8 @@ export default function SkillsBasedTasks({ userId, onTaskSelect }: SkillsBasedTa
       const matchesSearch = task.taskTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         task.matchedSkills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
-      return matchesSearch && matchesPriority;
+      const notApplied = !appliedTasks?.has(task.taskId);
+      return matchesSearch && matchesPriority && notApplied;
     });
   };
 
@@ -128,7 +132,38 @@ export default function SkillsBasedTasks({ userId, onTaskSelect }: SkillsBasedTa
           </div>
         )}
         
-        <Progress value={taskResult.matchScore} className="h-2" />
+        <div className="flex gap-2 mt-3">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              const task = tasks.find(t => t.id === taskResult.taskId);
+              if (task && onTaskSelect) {
+                onTaskSelect(task);
+              }
+            }}
+          >
+            <Target className="w-3 h-3 mr-1" />
+            Подробнее
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Здесь можно добавить логику для открытия AI-консультанта
+              console.log('AI Assistant for task:', taskResult.taskId);
+            }}
+          >
+            <Bot className="w-3 h-3 mr-1" />
+            AI-помощник
+          </Button>
+        </div>
+        
+        <Progress value={taskResult.matchScore} className="h-2 mt-2" />
       </CardContent>
     </Card>
   );

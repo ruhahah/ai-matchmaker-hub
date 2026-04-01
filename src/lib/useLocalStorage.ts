@@ -171,7 +171,7 @@ export class LocalStorageDB {
           name: 'Алексей Волонтер',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
           skills: ['Перевод', 'Обучение', 'IT поддержка'],
-          bio: 'Опытный волонтер из Москвы с 5+ годами помощи сообществу',
+          bio: 'Опытный волонтер из Астаны с 5+ годами помощи сообществу',
           role: 'volunteer',
           created_at: new Date().toISOString()
         },
@@ -180,7 +180,7 @@ export class LocalStorageDB {
           name: 'Екатерина Волонтер',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ekaterina',
           skills: ['Гардening', 'Экология', 'Организация'],
-          bio: 'Студентка из МГУ, люблю помогать в экологических проектах',
+          bio: 'Студентка из АУЭС, люблю помогать в экологических проектах',
           role: 'volunteer',
           created_at: new Date().toISOString()
         },
@@ -189,7 +189,7 @@ export class LocalStorageDB {
           name: 'Дмитрий Волонтер',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dmitry',
           skills: ['Животные', 'Ветеринария', 'Уход'],
-          bio: 'Ветеринар из Москвы, помогаю приютам для животных',
+          bio: 'Ветеринар из Астаны, помогаю приютам для животных',
           role: 'volunteer',
           created_at: new Date().toISOString()
         },
@@ -198,7 +198,7 @@ export class LocalStorageDB {
           name: 'Мария Организатор',
           avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
           skills: ['Организация', 'Координация', 'Фандрайзинг'],
-          bio: 'Профессиональный организатор мероприятий из Москвы',
+          bio: 'Профессиональный организатор мероприятий из Астаны',
           role: 'organizer',
           created_at: new Date().toISOString()
         }
@@ -208,9 +208,9 @@ export class LocalStorageDB {
         {
           id: 'mock-task-1',
           title: 'Помощь в переводе документов',
-          description: 'Нужна помощь в переводе технической документации с английского на русский. Работа удаленная, но встречи в Москве.',
+          description: 'Нужна помощь в переводе технической документации с английского на русский. Работа удаленная, но встречи в Астане.',
           skills: ['Перевод', 'Технический английский'],
-          location: 'Москва, удаленно',
+          location: 'Астана, удаленно',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()
@@ -218,19 +218,19 @@ export class LocalStorageDB {
         {
           id: 'mock-task-2',
           title: 'Обучение пожилых людей компьютерной грамотности',
-          description: 'Проведение занятий по основам работы с компьютером для пенсионеров в районном центре Москвы',
+          description: 'Проведение занятий по основам работы с компьютером для пенсионеров в районном центре Астаны',
           skills: ['Обучение', 'Компьютерная грамотность'],
-          location: 'Москва, центр города',
+          location: 'Астана, центр города',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()
         },
         {
           id: 'mock-task-3',
-          title: 'Уборка в парке "Сокольники"',
+          title: 'Уборка в парке "Астана"',
           description: 'Помощь в весенней уборке парка, сбор мусора и посадка новых деревьев',
           skills: ['Экология', 'Гардening', 'Работа на свежем воздухе'],
-          location: 'Москва, парк Сокольники',
+          location: 'Астана, парк "Первый Президент"',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()
@@ -238,9 +238,9 @@ export class LocalStorageDB {
         {
           id: 'mock-task-4',
           title: 'Помощь в приюте для животных',
-          description: 'Выгул собак, уборка вольеров, помощь в кормлении животных в приюте на севере Москвы',
+          description: 'Выгул собак, уборка вольеров, помощь в кормлении животных в приюте на севере Астаны',
           skills: ['Животные', 'Уход', 'Ветеринария'],
-          location: 'Москва, приют "Друзья"',
+          location: 'Астана, приют "Друзья"',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()
@@ -248,9 +248,9 @@ export class LocalStorageDB {
         {
           id: 'mock-task-5',
           title: 'Организация детского праздника',
-          description: 'Помощь в организации праздника для детей из малообеспеченных семей в центре Москвы',
+          description: 'Помощь в организации праздника для детей из малообеспеченных семей в центре Астаны',
           skills: ['Организация', 'Работа с детьми', 'Творчество'],
-          location: 'Москва, ВДНХ',
+          location: 'Астана, Дворец "Молодежный"',
           status: 'open',
           creator_id: 'mock-organizer-1',
           created_at: new Date().toISOString()

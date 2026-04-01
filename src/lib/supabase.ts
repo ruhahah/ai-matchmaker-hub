@@ -21,6 +21,8 @@ export interface Task {
   creator_id: string;
   created_at: string;
   startTime?: string;
+  required_volunteers?: number;
+  urgency?: 'low' | 'medium' | 'high';
 }
 
 export interface Application {

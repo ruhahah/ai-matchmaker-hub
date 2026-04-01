@@ -428,11 +428,11 @@ export default function VolunteerProfile() {
                 e.stopPropagation();
                 console.log('Button clicked, attempting navigation...');
                 try {
-                  navigate('/volunteer/dashboard', { replace: true });
+                  navigate('/volunteer', { replace: true });
                 } catch (error) {
                   console.error('Navigation error:', error);
                   // Fallback to window.location
-                  window.location.href = '/volunteer/dashboard';
+                  window.location.href = '/volunteer';
                 }
               }}
             >

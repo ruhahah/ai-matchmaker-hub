@@ -79,11 +79,11 @@ export interface VolunteerInvitation {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const MOCK_TASKS: Task[] = [
-  { id: 't1', title: 'Покраска забора в парке', description: 'Покраска забора вдоль парка Горького. Все материалы предоставляются.', skills: ['painting', 'outdoors'], location: 'Москва, парк Горького', status: 'open', creatorId: 'org1' },
-  { id: 't2', title: 'Помощь в приюте для животных', description: 'Помощь в выгуле и кормлении собак в местном приюте по субботам.', skills: ['animals', 'caregiving'], location: 'Москва, приют "Друзья"', status: 'open', creatorId: 'org1' },
-  { id: 't3', title: 'Репетиторство для подростков', description: 'Проведение занятий по математике и естественным наукам для старшеклассников после школы.', skills: ['teaching', 'math', 'science'], location: 'Москва, Центральная библиотека', status: 'in_progress', creatorId: 'org1' },
-  { id: 't4', title: 'Уборка в общественном саду', description: 'Весенняя уборка в общественном саду. Прополка, посадка, мульчирование.', skills: ['gardening', 'outdoors'], location: 'Москва, сад "Эрмитаж"', status: 'open', creatorId: 'org1' },
-  { id: 't5', title: 'Техническая помощь пожилым', description: 'Помощь пожилым людям в изучении смартфонов и планшетов в общественном центре.', skills: ['technology', 'patience', 'teaching'], location: 'Москва, центр "Золотые годы"', status: 'completed', creatorId: 'org1' },
+  { id: 't1', title: 'Покраска забора в парке', description: 'Покраска забора вдоль парка "Первый Президент". Все материалы предоставляются.', skills: ['painting', 'outdoors'], location: 'Астана, парк "Первый Президент"', status: 'open', creatorId: 'org1' },
+  { id: 't2', title: 'Помощь в приюте для животных', description: 'Помощь в выгуле и кормлении собак в местном приюте по субботам.', skills: ['animals', 'caregiving'], location: 'Астана, приют "Друзья"', status: 'open', creatorId: 'org1' },
+  { id: 't3', title: 'Репетиторство для подростков', description: 'Проведение занятий по математике и естественным наукам для старшеклассников после школы.', skills: ['teaching', 'math', 'science'], location: 'Астана, Центральная библиотека', status: 'in_progress', creatorId: 'org1' },
+  { id: 't4', title: 'Уборка в общественном саду', description: 'Весенняя уборка в общественном саду. Прополка, посадка, мульчирование.', skills: ['gardening', 'outdoors'], location: 'Астана, сад "Эрмитаж"', status: 'open', creatorId: 'org1' },
+  { id: 't5', title: 'Техническая помощь пожилым', description: 'Помощь пожилым людям в изучении смартфонов и планшетов в общественном центре.', skills: ['technology', 'patience', 'teaching'], location: 'Астана, центр "Золотые годы"', status: 'completed', creatorId: 'org1' },
 ];
 
 // ===== API FUNCTIONS =====
@@ -102,6 +102,9 @@ export async function getTasks(_role: string): Promise<Task[]> {
         location: t.location || '',
         status: t.status as Task['status'],
         creatorId: t.creator_id,
+        requiredVolunteers: t.required_volunteers || 1,
+        startTime: t.startTime,
+        created_at: t.created_at
       }));
     }
   } catch (e) {
@@ -241,27 +244,82 @@ export async function aiIntakeText(rawText: string): Promise<IntakeResult> {
   };
 }
 
-export async function aiSemanticMatching(taskId: string, _profileIds: string[]): Promise<MatchingResult[]> {
+export async function aiSemanticMatching(taskId: string, profileIds: string[]): Promise<MatchingResult[]> {
   try {
-    const { matchVolunteers } = await import('./supabase');
-    const task = localStorageDB.getTask(taskId);
-    if (!task) return [];
+    // Используем demoDatabase вместо localStorageDB
+    const { demoDatabase } = await import('./demoDatabase');
+    const tasks = demoDatabase.getTasks();
+    const task = tasks.find(t => t.id === taskId);
     
-    const matches = await matchVolunteers([]); // Empty embedding for mock
-    const volunteers = localStorageDB.getProfiles('volunteer');
+    if (!task) {
+      console.warn('Task not found:', taskId);
+      return [];
+    }
     
-    return matches.slice(0, 5).map((match, index) => {
-      const volunteer = volunteers[index];
+    const profiles = demoDatabase.getProfiles();
+    const volunteers = profiles.filter(p => p.role === 'volunteer');
+    
+    // Создаем мэтчи на основе совпадения навыков и других факторов
+    const matches: MatchingResult[] = volunteers.map(volunteer => {
+      let score = 0.3; // Базовый скор
+      
+      // Бонус за совпадение навыков
+      const matchingSkills = task.skills?.filter(skill => 
+        volunteer.skills.some(volunteerSkill => 
+          volunteerSkill.toLowerCase().includes(skill.toLowerCase()) || 
+          skill.toLowerCase().includes(volunteerSkill.toLowerCase())
+        )
+      ) || [];
+      
+      if (matchingSkills.length > 0) {
+        score += (matchingSkills.length * 0.15); // +0.15 за каждый совпавший навык
+      }
+      
+      // Бонус за локацию
+      if (task.location && volunteer.location && 
+          (task.location.toLowerCase().includes('астана') && volunteer.location.toLowerCase().includes('астана'))) {
+        score += 0.2;
+      }
+      
+      // Бонус за опыт
+      if (volunteer.stats.tasksCompleted > 10) {
+        score += 0.1;
+      }
+      
+      // Бонус за рейтинг
+      if (volunteer.stats.rating >= 4.5) {
+        score += 0.1;
+      }
+      
+      // Ограничиваем скор
+      score = Math.min(score, 1.0);
+      
+      // Генерируем причину на русском
+      let reason = '';
+      if (matchingSkills.length > 0) {
+        reason = `Отлично подходит по навыкам: ${matchingSkills.join(', ')}`;
+      } else if (volunteer.stats.tasksCompleted > 10) {
+        reason = 'Опытный волонтер с большим количеством выполненных задач';
+      } else {
+        reason = 'Хороший кандидат, готов помочь с задачей';
+      }
+      
       return {
-        volunteerId: match.volunteer_id,
-        volunteerName: volunteer?.name || 'Unknown',
-        volunteerSkills: volunteer?.skills || [],
-        volunteerBio: volunteer?.bio || '',
+        volunteerId: volunteer.id,
+        volunteerName: volunteer.name,
+        volunteerSkills: volunteer.skills,
+        volunteerBio: volunteer.bio || '',
         taskId,
-        score: match.score,
-        reason: match.reason,
+        score,
+        reason
       };
     });
+    
+    // Сортируем по скору и возвращаем топ-10
+    return matches
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+      
   } catch (e) {
     console.error('Semantic matching error:', e);
     return [];

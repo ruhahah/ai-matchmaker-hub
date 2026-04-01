@@ -5,16 +5,25 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
+import PWAProvider from "@/components/PWAProvider";
+import { pushNotifications } from "@/lib/pushNotifications";
 import RoleSelect from "@/pages/RoleSelect";
 import OrganizerDashboard from "@/pages/OrganizerDashboard";
 import VolunteerDashboard from "@/pages/VolunteerDashboard";
 import VolunteerProfile from "@/pages/VolunteerProfile";
 import NotFound from "./pages/NotFound.tsx";
+import DemoShowcase from "@/components/DemoShowcase";
+import React from "react";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { role } = useAuth();
+
+  // Инициализация push-уведомлений при загрузке
+  React.useEffect(() => {
+    pushNotifications.initialize();
+  }, []);
 
   if (!role) {
     return (
@@ -31,6 +40,7 @@ function AppRoutes() {
         <Route path="/organizer" element={role === 'organizer' ? <OrganizerDashboard /> : <Navigate to={`/${role}`} />} />
         <Route path="/volunteer" element={role === 'volunteer' ? <VolunteerDashboard /> : <Navigate to={`/${role}`} />} />
         <Route path="/volunteer/profile" element={role === 'volunteer' ? <VolunteerProfile /> : <Navigate to={`/${role}`} />} />
+        <Route path="/demo" element={<DemoShowcase />} />
         <Route path="/" element={<Navigate to={`/${role}`} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -44,9 +54,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+        <PWAProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </PWAProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
