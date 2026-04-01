@@ -322,8 +322,8 @@ export async function createTaskWithMatching(taskData: {
     const applicationsWithExplanations = await Promise.all(
       matches.slice(0, 5).map(async (match) => {
         const explanation = await generateMatchExplanation(
-          match.volunteer_bio || '',
-          match.volunteer_skills || [],
+          match.reason || '',
+          [],
           taskData.description,
           taskData.skills
         );
