@@ -180,7 +180,7 @@ export async function createTaskWithAI(taskData: {
       description: result.task.description,
       skills: result.task.skills,
       location: result.task.location || '',
-      status: result.task.status,
+      status: result.task.status as 'open' | 'in_progress' | 'completed',
       creatorId: result.task.creator_id,
     };
     
