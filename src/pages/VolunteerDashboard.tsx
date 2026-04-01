@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users, Bell, Calendar, Award, Heart } from 'lucide-react';
+import { Loader2, Sparkles, MapPin, CheckCircle2, XCircle, Camera, Send, Upload, Clock, AlertCircle, Target, Star, TrendingUp, Bot, User, Users, Bell, Calendar, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { demoDatabase } from '@/lib/demoDatabase';
 import { friendsService } from '@/lib/friendsService';
@@ -77,7 +77,86 @@ export default function VolunteerDashboard() {
       // Загружаем друзей
       if (volunteer) {
         const friendList = friendsService.getFriends(volunteer.id);
-        setFriends(friendList);
+        
+        // Добавляем фейковых друзей для демонстрации
+        const fakeFriends: Friend[] = [
+          {
+            id: 'fake-1',
+            name: 'Елена Волкова',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
+            skills: ['Экология', 'Образование', 'Организация мероприятий'],
+            bio: 'Учитель биологии, люблю природу и волонтерство',
+            status: 'online',
+            lastSeen: new Date().toISOString()
+          },
+          {
+            id: 'fake-2', 
+            name: 'Михаил Петров',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael',
+            skills: ['IT', 'Программирование', 'Графический дизайн'],
+            bio: 'Full-stack разработчик, помогаю с IT проектами',
+            status: 'offline',
+            lastSeen: new Date(Date.now() - 3600000).toISOString()
+          },
+          {
+            id: 'fake-3',
+            name: 'Айнура Султанова',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ainura',
+            skills: ['Перевод', 'Языки', 'Международные отношения'],
+            bio: 'Переводчик с английского, китайского и турецкого',
+            status: 'busy',
+            lastSeen: new Date(Date.now() - 1800000).toISOString()
+          },
+          {
+            id: 'fake-4',
+            name: 'Дмитрий Николаев',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dmitry',
+            skills: ['Спорт', 'Фитнес', 'Работа с детьми'],
+            bio: 'Тренер по футболу, работаю с детскими командами',
+            status: 'online',
+            lastSeen: new Date().toISOString()
+          },
+          {
+            id: 'fake-5',
+            name: 'Светлана Морозова',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Svetlana',
+            skills: ['Медицина', 'Первая помощь', 'Психология'],
+            bio: 'Медсестра, всегда готова помочь',
+            status: 'offline',
+            lastSeen: new Date(Date.now() - 7200000).toISOString()
+          },
+          {
+            id: 'fake-6',
+            name: 'Арман Беков',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Arman',
+            skills: ['Фотография', 'Видеосъемка', 'Монтаж'],
+            bio: 'Фотограф, снимаю мероприятия и природу',
+            status: 'online',
+            lastSeen: new Date().toISOString()
+          },
+          {
+            id: 'fake-7',
+            name: 'Ольга Кузнецова',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Olga',
+            skills: ['Кулинария', 'Организация питания', 'Логистика'],
+            bio: 'Шеф-повар, организую питание для мероприятий',
+            status: 'busy',
+            lastSeen: new Date(Date.now() - 900000).toISOString()
+          },
+          {
+            id: 'fake-8',
+            name: 'Тимур Амиров',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Timur',
+            skills: ['Музыка', 'Организация концертов', 'Звукорежиссура'],
+            bio: 'Музыкант, помогаю с культурными мероприятиями',
+            status: 'offline',
+            lastSeen: new Date(Date.now() - 5400000).toISOString()
+          }
+        ];
+        
+        // Объединяем реальных и фейковых друзей
+        const allFriends = [...friendList, ...fakeFriends];
+        setFriends(allFriends);
       }
 
       // Загружаем отклики пользователя
@@ -204,7 +283,7 @@ export default function VolunteerDashboard() {
 
       {/* Main Content */}
       <Tabs defaultValue="tasks" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="tasks" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             Задачи
@@ -225,10 +304,6 @@ export default function VolunteerDashboard() {
             <Badge variant="secondary" className="text-xs">
               {friends.length}
             </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="feed" className="flex items-center gap-2">
-            <Heart className="w-4 h-4" />
-            Лента
           </TabsTrigger>
         </TabsList>
 
@@ -427,15 +502,6 @@ export default function VolunteerDashboard() {
               ))}
             </div>
           )}
-        </TabsContent>
-
-        {/* Discovery Feed */}
-        <TabsContent value="feed" className="space-y-4">
-          <div className="text-center py-8">
-            <Heart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-600 mb-2">Лента активности</p>
-            <p className="text-sm text-gray-500">Скоро здесь появится активность ваших друзей</p>
-          </div>
         </TabsContent>
       </Tabs>
 
